@@ -128,7 +128,51 @@ class AlphaWave(AsyncIOEventEmitter):
     async def repairResponse(self, fork, functions, tokenizer, validation, remaining_attempts):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = self.options.values()
 
+     # Are we out of attempts?
         feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
+        if remaining_attempts <= 0:
+            return {
+                'status': 'invalid_response',
+                'message': feedback
+            }
+
+        # Add response and feedback to repair history
+        self.add_response_to_history(fork, f"{self.options['history_variable']}-repair", response['message'])
+        self.add_input_to_history(fork, f"{self.options['history_variable']}-repair", feedback)
+
+        # Append repair history to prompt
+        repair_prompt = Prompt([
+            prompt,
+            ConversationHistory(f"{self.options['history_variable']}-repair")
+        ])
+
+        # Log the repair
+        if self.options['logRepairs']:
+            print(Colorize.value('feedback', feedback))
+
+        # Ask client to complete prompt
+        repair_response = await client.complete_prompt(fork, functions, tokenizer, repair_prompt, prompt_options)
+        if repair_response['status'] != 'success':
+            return repair_response
+
+        # Ensure response is a message
+        if not isinstance(repair_response['message'], dict):
+            repair_response['message'] = { 'role': 'assistant', 'content': repair_response.get('message', '') }
+
+        # Validate response
+        validation = await validator.validate_response(fork, functions, tokenizer, repair_response, remaining_attempts)
+        if validation['valid']:
+            # Update content
+            if 'value' in validation:
+                repair_response['message']['content'] = validation['value']
+
+            return repair_response
+
+        # Try next attempt
+        remaining_attempts -= 1
+        return await self.repair_response(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
+    """
+    {feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
         if remaining_attempts <= 0:
             return {
                 'status': 'invalid_response',
@@ -160,3 +204,4 @@ class AlphaWave(AsyncIOEventEmitter):
         remaining_attempts -= 1
         self.emit('nextRepair', fork, functions, tokenizer, response, remaining_attempts, validation)
         return await self.repairResponse(fork, functions, tokenizer, validation, remaining_attempts)
+    """

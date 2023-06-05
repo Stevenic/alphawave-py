@@ -1,2 +1,2 @@
-# alphawave-py
-AlphaWave is a very opinionated client for interfacing with Large Language Models.
+# AlphaWave
+AlphaWave is a conversation manager for LLMs
