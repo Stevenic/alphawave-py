@@ -151,3 +151,5 @@ class CreateEmbeddingResponse:
     data: List[CreateEmbeddingResponseDataInner]
     usage: CreateEmbeddingResponseUsage
 
+if __name__ == '__main__':
+    chatCompletionObj = CreateChatCompletionRequest(model= 'gpt-3.5', messages= ['a', 'b'])

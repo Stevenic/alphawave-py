@@ -70,7 +70,7 @@ class AlphaWave(AsyncIOEventEmitter):
                 response['message'] = {'role': 'assistant', 'content': response['message'] or ''}
 
             self.emit('beforeValidation', memory, functions, tokenizer, response, max_repair_attempts)
-            validation = await validator.validateResponse(memory, functions, tokenizer, response, max_repair_attempts)
+            validation = validator.validate_response(memory, functions, tokenizer, response, max_repair_attempts)
             self.emit('afterValidation', memory, functions, tokenizer, response, max_repair_attempts, validation)
             if validation['valid']:
                 if 'value' in validation:
@@ -150,7 +150,7 @@ class AlphaWave(AsyncIOEventEmitter):
             response['message'] = {'role': 'assistant', 'content': response['message'] or ''}
 
         self.emit('beforeValidation', fork, functions, tokenizer, response, remaining_attempts)
-        validation = await validator.validateResponse(fork, functions, tokenizer, response, remaining_attempts)
+        validation = await validator.validate_response(fork, functions, tokenizer, response, remaining_attempts)
         self.emit('afterValidation', fork, functions, tokenizer, response, remaining_attempts, validation)
         if validation['valid']:
             if 'value' in validation:
