@@ -1,19 +1,24 @@
 from typing import Callable, Dict, Optional, Any
-from DefaultResponseValidator import DefaultResponseValidator
+from dataclasses import dataclass, asdict
+from pyee import AsyncIOEventEmitter
+import readline as re
+
 from promptrix.promptrixTypes import Message, PromptFunctions, PromptSection, PromptMemory, Tokenizer
+from promptrix.ConversationHistory import ConversationHistory
 from promptrix.FunctionRegistry import  FunctionRegistry
 from promptrix.GPT3Tokenizer import GPT3Tokenizer
+from promptrix.Prompt import Prompt
 from promptrix.VolatileMemory import VolatileMemory
 from promptrix.Utilities import Utilities
-from alphawaveTypes import  PromptCompletionClient, PromptCompletionOptions, PromptResponse,Validation, PromptResponseValidator 
-from DefaultResponseValidator import DefaultResponseValidator
-from MemoryFork import  MemoryFork
-from alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse, Validation, PromptResponseValidator
-from MemoryFork import MemoryFork
-import Colorize
-from pyee import AsyncIOEventEmitter
+
+from alphawave.alphawaveTypes import  PromptCompletionClient, PromptCompletionOptions, PromptResponse,Validation, PromptResponseValidator 
+from alphawave.DefaultResponseValidator import DefaultResponseValidator
+from alphawave.MemoryFork import  MemoryFork
+from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse, Validation, PromptResponseValidator
+from alphawave.Colorize import Colorize
 import traceback
 
+@dataclass
 class AlphaWaveOptions:
     def __init__(self, client: PromptCompletionClient, prompt: PromptSection, prompt_options: PromptCompletionOptions, functions: Optional[PromptFunctions] = None, history_variable: Optional[str] = None, input_variable: Optional[str] = None, max_history_messages: Optional[int] = None, max_repair_attempts: Optional[int] = None, memory: Optional[PromptMemory] = None, tokenizer: Optional[Tokenizer] = None, validator: Optional[PromptResponseValidator] = None, logRepairs: Optional[bool] = None):
         self.client = client
@@ -51,7 +56,7 @@ class AlphaWave(AsyncIOEventEmitter):
     async def completePrompt(self, input=None):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = self.options.values()
         
-        if input_variable:
+        if self.options['input_variable']:
             if input:
                 memory.set(input_variable, input)
             else:
@@ -89,7 +94,7 @@ class AlphaWave(AsyncIOEventEmitter):
                 print(Colorize.output(response['message']['content']))
 
             self.emit('beforeRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
-            repair = await self.repairResponse(fork, functions, tokenizer, validation, max_repair_attempts)
+            repair = await self.repairResponse(fork, functions, tokenizer, response, validation, max_repair_attempts)
             self.emit('afterRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
 
             if self.options['logRepairs']:
@@ -125,10 +130,11 @@ class AlphaWave(AsyncIOEventEmitter):
                 history = history[-self.options['max_history_messages']:]
             memory.set(variable, history)
 
-    async def repairResponse(self, fork, functions, tokenizer, validation, remaining_attempts):
+    async def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = self.options.values()
 
-     # Are we out of attempts?
+        print(f'repairResponse {remaining_attempts}, {validation}\n {response}')
+        # Are we out of attempts?
         feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
         if remaining_attempts <= 0:
             return {
@@ -137,8 +143,8 @@ class AlphaWave(AsyncIOEventEmitter):
             }
 
         # Add response and feedback to repair history
-        self.add_response_to_history(fork, f"{self.options['history_variable']}-repair", response['message'])
-        self.add_input_to_history(fork, f"{self.options['history_variable']}-repair", feedback)
+        self.addResponseToHistory(fork, f"{self.options['history_variable']}-repair", response['message'])
+        self.addInputToHistory(fork, f"{self.options['history_variable']}-repair", feedback)
 
         # Append repair history to prompt
         repair_prompt = Prompt([
@@ -160,7 +166,7 @@ class AlphaWave(AsyncIOEventEmitter):
             repair_response['message'] = { 'role': 'assistant', 'content': repair_response.get('message', '') }
 
         # Validate response
-        validation = await validator.validate_response(fork, functions, tokenizer, repair_response, remaining_attempts)
+        validation = validator.validate_response(fork, functions, tokenizer, repair_response, remaining_attempts)
         if validation['valid']:
             # Update content
             if 'value' in validation:
@@ -170,7 +176,7 @@ class AlphaWave(AsyncIOEventEmitter):
 
         # Try next attempt
         remaining_attempts -= 1
-        return await self.repair_response(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
+        return await self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
     """
     {feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
         if remaining_attempts <= 0:

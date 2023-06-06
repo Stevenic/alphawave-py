@@ -2,8 +2,8 @@ import os
 #from dotenv import load_dotenv
 from pathlib import Path
 import readline
-from AlphaWave import AlphaWave
-from OpenAIClient import OpenAIClient
+from alphawave.AlphaWave import AlphaWave
+from alphawave.OpenAIClient import OpenAIClient
 import promptrix
 from promptrix.Prompt import Prompt
 from promptrix.SystemMessage import SystemMessage
@@ -54,7 +54,7 @@ async def chat(bot_message=None):
             print(result)
             await chat(result['message']['content'])
         else:
-            if result['response']:
+            if result['message']:
                 print(f"{result['status']}: {result['message']}")
             else:
                 print(f"A result status of '{result['status']}' was returned.")

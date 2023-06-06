@@ -6,16 +6,17 @@ from promptrix.FunctionRegistry import FunctionRegistry
 from promptrix.Prompt import Prompt
 from promptrix.GPT3Tokenizer import GPT3Tokenizer
 from promptrix.VolatileMemory import VolatileMemory
-from alphawaveTypes import PromptCompletionOptions, PromptResponse, PromptResponseValidator, Validation
-from DefaultResponseValidator import DefaultResponseValidator
-from TestClient import TestClient
-from OpenAIClient import OpenAIClient
-from AlphaWave import AlphaWave
+from alphawave.alphawaveTypes import PromptCompletionOptions, PromptResponse, PromptResponseValidator, Validation
+from alphawave.DefaultResponseValidator import DefaultResponseValidator
+from alphawave.TestClient import TestClient
+from alphawave.OpenAIClient import OpenAIClient
+from alphawave.AlphaWave import AlphaWave
 import os
 from promptrix.SystemMessage import SystemMessage
 from promptrix.ConversationHistory import ConversationHistory
 from promptrix.UserMessage import UserMessage
 from promptrix.AssistantMessage import AssistantMessage
+
 
 class TestValidator(PromptResponseValidator):
     def __init__(self, client):
@@ -67,17 +68,17 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator, history_variable='history', input_variable='input', max_repair_attempts=5, max_history_messages=20)
         assert_that(wave).is_not_none()
         assert_that(wave.options).is_not_none()
-        assert_that(wave.options['client']).is_equal_to(self.client)
-        assert_that(wave.options['prompt']).is_equal_to(self.prompt)
-        assert_that(wave.options['prompt_options']).is_equal_to(self.prompt_options)
-        assert_that(wave.options['memory']).is_equal_to(self.memory)
-        assert_that(wave.options['functions']).is_equal_to(self.functions)
-        assert_that(wave.options['tokenizer']).is_equal_to(self.tokenizer)
-        assert_that(wave.options['validator']).is_equal_to(self.validator)
-        assert_that(wave.options['history_variable']).is_equal_to('history')
-        assert_that(wave.options['input_variable']).is_equal_to('input')
-        assert_that(wave.options['max_repair_attempts']).is_equal_to(5)
-        assert_that(wave.options['max_history_messages']).is_equal_to(20)
+        assert_that(wave.options.client).is_equal_to(self.client)
+        assert_that(wave.options.prompt).is_equal_to(self.prompt)
+        assert_that(wave.options.prompt_options).is_equal_to(self.prompt_options)
+        assert_that(wave.options.memory).is_equal_to(self.memory)
+        assert_that(wave.options.functions).is_equal_to(self.functions)
+        assert_that(wave.options.tokenizer).is_equal_to(self.tokenizer)
+        assert_that(wave.options.validator).is_equal_to(self.validator)
+        assert_that(wave.options.history_variable).is_equal_to('history')
+        assert_that(wave.options.input_variable).is_equal_to('input')
+        assert_that(wave.options.max_repair_attempts).is_equal_to(5)
+        assert_that(wave.options.max_history_messages).is_equal_to(20)
 
     async def test_basic_prompt_completion(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)

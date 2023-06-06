@@ -6,10 +6,10 @@ from promptrix.FunctionRegistry import FunctionRegistry
 from promptrix.Prompt import Prompt
 from promptrix.GPT3Tokenizer import GPT3Tokenizer
 from promptrix.VolatileMemory import VolatileMemory
-from alphawaveTypes import PromptCompletionOptions, PromptResponse, PromptResponseValidator, Validation
-from DefaultResponseValidator import DefaultResponseValidator
-from TestClient import TestClient
-from AlphaWave import AlphaWave
+from alphawave.alphawaveTypes import PromptCompletionOptions, PromptResponse, PromptResponseValidator, Validation
+from alphawave.DefaultResponseValidator import DefaultResponseValidator
+from alphawave.TestClient import TestClient
+from alphawave.AlphaWave import AlphaWave
 
 class TestValidator(PromptResponseValidator):
     def __init__(self, client):

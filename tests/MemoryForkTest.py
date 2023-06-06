@@ -1,7 +1,7 @@
 import unittest
 
 #import promptrix.VolatileMemory as VolatileMemory, MemoryFork
-from MemoryFork import MemoryFork
+from alphawave.MemoryFork import MemoryFork
 from promptrix.VolatileMemory import VolatileMemory
 class TestMemoryFork(unittest.TestCase):
 

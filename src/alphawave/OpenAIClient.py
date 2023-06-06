@@ -1,15 +1,16 @@
 import requests, time, copy
 from typing import Optional, Dict, Any, Union
-import dataclasses
+from dataclasses import dataclass, asdict
 from promptrix.promptrixTypes import PromptFunctions, PromptMemory, PromptSection, Tokenizer
 from promptrix.SystemMessage import SystemMessage
 from promptrix.ConversationHistory import ConversationHistory
 from promptrix.AssistantMessage import AssistantMessage
 
-from alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse
-from internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
-import Colorize
+from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse
+from alphawave.internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
+import alphawave.Colorize as Colorize
 
+@dataclass
 class OpenAIClientOptions:
     def __init__(self, apiKey=None, organization = None, endpoint = None, logRequests = False):
         self.apiKey = apiKey
@@ -40,9 +41,9 @@ class OpenAIClient(PromptCompletionClient):
     async def complete_prompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         startTime = time.time()
         max_input_tokens = 1024
-        if hasattr(options, 'max_input_tokens'):
+        if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
             max_input_tokens = options.max_input_tokens
-        if 'completion_type' in options.keys() and options['completion_type'] == 'text':
+        if hasattr(options, 'completion_type') and options.completion_type == 'text':
             result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
             if result.tooLong:
                 return {'status': 'too_long', 'message': f"The generated text completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
@@ -78,7 +79,7 @@ class OpenAIClient(PromptCompletionClient):
             if self.options['logRequests']:
                 print(Colorize.title('CHAT PROMPT:'))
                 print(Colorize.output(result.output))
-            request = self.copyOptionsToRequest(CreateChatCompletionRequest(model=options['model'],messages=result.output), options,
+            request = self.copyOptionsToRequest(CreateChatCompletionRequest(model=options.model, messages=result.output), options,
                                                     ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
             response = self.createChatCompletion(request)
             if self.options['logRequests']:
@@ -123,7 +124,7 @@ class OpenAIClient(PromptCompletionClient):
             'User-Agent': self.UserAgent
         }
         self.addRequestHeaders(requestHeaders, self.options)
-        jsonbody = dataclasses.asdict(body)
+        jsonbody = asdict(body)
         keys = list(jsonbody.keys())
         for key in keys:
             if jsonbody[key] is None:

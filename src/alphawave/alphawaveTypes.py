@@ -16,13 +16,13 @@ class PromptResponseValidator:
 class PromptCompletionOptions:
     completion_type: str  # 'text' | 'chat'
     model: str
-    max_input_tokens = None
-    temperature = None
-    top_p = None
-    max_tokens = None
-    stop = None
-    presence_penalty = None
-    frequency_penalty = None
+    max_input_tokens: int =1000
+    temperature: float = 0.7
+    top_p: float = 1.0
+    max_tokens: int = 500
+    stop: str = None
+    presence_penalty: float = 1.0
+    frequency_penalty: float = 1.0
     logit_bias = None
     best_of = None
 

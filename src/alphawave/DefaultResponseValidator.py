@@ -1,5 +1,5 @@
 from promptrix.promptrixTypes import PromptFunctions, PromptMemory, Tokenizer
-from alphawaveTypes import PromptResponse, Validation, PromptResponseValidator
+from alphawave.alphawaveTypes import PromptResponse, Validation, PromptResponseValidator
 
 class DefaultResponseValidator(PromptResponseValidator):
     def validate_response(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, response: PromptResponse, remaining_attempts) -> Validation:

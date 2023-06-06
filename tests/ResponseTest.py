@@ -1,6 +1,6 @@
 import unittest
 import json
-from Response import Response
+from alphawave.Response import Response
 
 class TestResponse(unittest.TestCase):
     def test_parseJSON(self):

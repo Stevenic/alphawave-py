@@ -5,8 +5,8 @@ from promptrix.FunctionRegistry import FunctionRegistry
 from promptrix.GPT3Tokenizer import  GPT3Tokenizer
 from promptrix.Prompt import Prompt
 
-from alphawaveTypes import PromptCompletionOptions
-from TestClient import TestClient
+from alphawave.alphawaveTypes import PromptCompletionOptions
+from alphawave.TestClient import TestClient
 import asyncio
 
 class TestClientTest(unittest.TestCase):
