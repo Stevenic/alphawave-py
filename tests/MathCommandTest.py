@@ -44,7 +44,7 @@ class TestMathCommand(aiounittest.AsyncTestCase):
             'code': '7 +'
         }
         result = command.execute(input, self.memory, self.functions, self.tokenizer)
-        self.assertEqual(result.message, 'invalid syntax (<string>, line 1)')
+        self.assertEqual(result['message'], 'invalid syntax (<string>, line 1)')
 
 if __name__ == '__main__':
     unittest.main()

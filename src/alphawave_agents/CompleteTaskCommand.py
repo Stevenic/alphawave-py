@@ -49,8 +49,8 @@ class CompleteTaskCommand(SchemaBasedCommand):
         rsp = input.status
         if self.response is not None:
             rsp = self.response
-        return TaskResponse(
+        return asdict(TaskResponse(
             type="TaskResponse",
             status="success",
             message=rsp
-        )
+        ))

@@ -1,35 +1,37 @@
-import { PromptMemory, PromptFunctions, Tokenizer } from "promptrix";
-import { SchemaBasedCommand, CommandSchema } from "../SchemaBasedCommand";
-import { TaskResponse } from "../types";
+from typing import Dict, Optional
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, asdict, field
+from promptrix.promptrixTypes import PromptMemory, Tokenizer, PromptFunctions
+from alphawave_agents.agentTypes import TaskResponse
+from alphawave_agents.SchemaBasedCommand import CommandSchema as sbcCommandSchema
+from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand
 
-const schema: CommandSchema = {
-    type: "object",
-    title: "finalAnswer",
-    description: "generate an answer for the user",
-    properties: {
-        answer: {
-            type: "string",
-            description: "final answer"
+
+@dataclass
+class CommandSchema(sbcCommandSchema):
+    schema_type: str = "object"
+    title: str = "finalAnswer"
+    description: str = "generate an answer for the user"
+    properties: dict = field(default_factory=lambda: {
+        "answer": {
+            "type": "string",
+            "description": "final answer"
         }
-    },
-    required: ["answer"],
-    returns: "a followup task or question"
-};
+    })
+    required: list[str] = field(default_factory=lambda: ["answer"])
+    returns: str = "a followup task or question"
 
-export interface FinalAnswerCommandInput {
-    answer: string;
-}
+@dataclass
+class FinalAnswerCommandInput:
+    answer:str
 
-export class FinalAnswerCommand extends SchemaBasedCommand<FinalAnswerCommandInput> {
-    public constructor(title?: string, description?: string) {
-        super(schema, title, description);
-    }
+class FinalAnswerCommand(SchemaBasedCommand):
+    def __init__(self, title: Optional[str] = None, description: Optional[str] = None):
+        super().__init__(CommandSchema(), title, description)
 
-    public execute(input: FinalAnswerCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer): Promise<TaskResponse> {
-        return Promise.resolve({
-            type: "TaskResponse",
-            status: "success",
-            message: input.answer
-        });
-    }
-}
+    def execute(self, input: FinalAnswerCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
+        return {
+            "type": "TaskResponse",
+            "status": "success",
+            "message": input['answer']
+        }

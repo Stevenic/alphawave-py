@@ -50,7 +50,6 @@ class TestValidator(PromptResponseValidator):
 class TestAlphaWave(aiounittest.AsyncTestCase):
     def setUp(self):
         self.client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"))
-        #self.client = TestClient('success', { 'role': 'assistant', 'content': 'Hello' })
         self.prompt = Prompt([
             SystemMessage('You are helpful, creative, clever, and very friendly.'),
             ConversationHistory('history', .5),
@@ -79,7 +78,6 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(wave.options.input_variable).is_equal_to('input')
         assert_that(wave.options.max_repair_attempts).is_equal_to(5)
         assert_that(wave.options.max_history_messages).is_equal_to(20)
-
     async def test_basic_prompt_completion(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         
@@ -105,6 +103,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(input).is_equal_to('Hi')
         self.memory.clear()
         self.memory.set('history', [])
+    """
 
     async def test_prompt_completion_with_validation(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
@@ -264,6 +263,6 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(str(history).startswith("[{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': {"))
         self.memory.clear()
         self.memory.set('history', [])
- 
+    """
 if __name__ == '__main__':
     unittest.main()

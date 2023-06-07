@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand
 from alphawave_agents.SchemaBasedCommand import CommandSchema as sbcCommandSchema
 from alphawave_agents.agentTypes import TaskResponse
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import traceback
 
 @dataclass
@@ -48,5 +48,5 @@ class MathCommand(SchemaBasedCommand):
             return eval(input['code'])
         except Exception as err:
             message = str(err)
-            return TaskResponse('TaskResponse', 'error', message)
+            return asdict(TaskResponse('TaskResponse', 'error', message))
 

@@ -26,15 +26,15 @@ class OpenAIClient(PromptCompletionClient):
         self.options = {'apiKey':None, 'organization':None, 'endpoint':None, 'logRequests':False}
         self.options.update(kwargs)
         if self.options['endpoint']:
-            self.options['endpoint'] = options['endpoint'].strip()
-            if options['endpoint'].endswith('/'):
-                options['endpoint'] = options['endpoint'][:-1]
+            self.options['endpoint'] = self.options['endpoint'].strip()
+            if self.options['endpoint'].endswith('/'):
+                self.options['endpoint'] = self.options['endpoint'][:-1]
 
-            if not options['endpoint'].lower().startswith('https://'):
+            if not self.options['endpoint'].lower().startswith('https://'):
                 raise ValueError(f"Client created with an invalid endpoint of '{options['endpoint']}'. The endpoint must be a valid HTTPS url.")
 
         if not self.options['apiKey']:
-            raise ValueError("Client created without an 'apiKey'.")
+            raise ValueErroprint("Client created without an 'apiKey'.")
 
         self._session = requests.Session()
 

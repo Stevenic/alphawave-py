@@ -18,6 +18,7 @@ from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOpt
 from alphawave.Colorize import Colorize
 import traceback
 
+"""
 @dataclass
 class AlphaWaveOptions:
     def __init__(self, client: PromptCompletionClient, prompt: PromptSection, prompt_options: PromptCompletionOptions, functions: Optional[PromptFunctions] = None, history_variable: Optional[str] = None, input_variable: Optional[str] = None, max_history_messages: Optional[int] = None, max_repair_attempts: Optional[int] = None, memory: Optional[PromptMemory] = None, tokenizer: Optional[Tokenizer] = None, validator: Optional[PromptResponseValidator] = None, logRepairs: Optional[bool] = None):
@@ -32,7 +33,7 @@ class AlphaWaveOptions:
         self.tokenizer = tokenizer
         self.validator = validator
         self.logRepairs = logRepairs
-
+"""
 
 class AlphaWave(AsyncIOEventEmitter):
     def __init__(self, **kwargs):
