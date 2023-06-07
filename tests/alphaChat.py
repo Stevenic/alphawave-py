@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import readline
 from alphawave.AlphaWave import AlphaWave
+from alphawave.alphawaveTypes import PromptCompletionOptions
 from alphawave.OpenAIClient import OpenAIClient
 import promptrix
 from promptrix.Prompt import Prompt
@@ -26,13 +27,13 @@ wave = AlphaWave(
         ConversationHistory('history', 1.0),
         UserMessage('{{$input}}', 450)
     ]),
-    prompt_options={
-        'completion_type': 'chat',
-        'model': 'gpt-3.5-turbo',
-        'temperature': 0.9,
-        'max_input_tokens': 2000,
-        'max_tokens': 1000,
-    }
+    prompt_options=PromptCompletionOptions(
+        completion_type = 'chat',
+        model = 'gpt-3.5-turbo',
+        temperature = 0.9,
+        max_input_tokens= 2000,
+        max_tokens= 1000
+        )
 )
 
 # Define main chat loop

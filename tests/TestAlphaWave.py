@@ -20,7 +20,8 @@ class TestValidator(PromptResponseValidator):
         self.returnContent = False
         self.client = client
 
-    async def validateResponse(self, memory, functions, tokenizer, response, remaining_attempts):
+    def validate_response(self, memory, functions, tokenizer, response, remaining_attempts):
+        print('validate')
         if self.exception:
             exception = self.exception
             self.exception = None
@@ -30,7 +31,7 @@ class TestValidator(PromptResponseValidator):
             self.clientErrorDuringRepair = False
             self.client.status = 'error'
             self.client.response = 'Some Error'
-            return { 'type': 'Validation', 'valid': False, 'feedback': self.feedback }
+            return {'type': 'Validation', 'valid': False, 'feedback': self.feedback }
         elif self.repairAttempts > 0:
             self.repairAttempts -= 1
             return { 'type': 'Validation', 'valid': False, 'feedback': self.feedback }
@@ -80,7 +81,6 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(wave.options['input_variable']).is_equal_to('test_input')
         assert_that(wave.options['max_repair_attempts']).is_equal_to(5)
         assert_that(wave.options['max_history_messages']).is_equal_to(20)
-
     async def test_basic_prompt_completion(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         
@@ -248,6 +248,5 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(history).is_equal_to([{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': { 'foo': 'bar'} }])
         self.memory.clear()
 
- 
 if __name__ == '__main__':
     unittest.main()
