@@ -2,6 +2,7 @@ import requests
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Any, Union
 import time
+import json
 import asyncio
 from promptrix.promptrixTypes import PromptFunctions, PromptMemory, PromptSection, Tokenizer
 from promptrix.SystemMessage import SystemMessage
@@ -11,6 +12,8 @@ from promptrix.AssistantMessage import AssistantMessage
 from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse
 from alphawave.internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
 import alphawave.Colorize as Colorize
+import alphawave.utilityV2 as ut
+import alphawave.LLMClient as client
 
 @dataclass
 class OSClientOptions:
@@ -20,6 +23,13 @@ class OSClientOptions:
         self.endpoint = endpoint
         self.logRequests = logRequests
 
+@dataclass
+class Response:
+    status_code: int
+    text: str
+    headers: Dict[str,str] = None
+    reason: str = ''
+    
 class OSClient(PromptCompletionClient):
     DefaultEndpoint = 'https://api.openai.com'
     UserAgent = 'AlphaWave'
@@ -42,7 +52,7 @@ class OSClient(PromptCompletionClient):
 
     async def complete_prompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         startTime = time.time()
-        print('enter complete prompt')
+        #print('enter complete prompt')
         max_input_tokens = options.max_input_tokens or 1024
         if options.completion_type == 'text':
             result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
@@ -61,18 +71,13 @@ class OSClient(PromptCompletionClient):
                 print(Colorize.title('RESPONSE:'))
                 print(Colorize.value('statuse', response.status))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
-                print(Colorize.output(response.json()))
+                print(Colorize.output(response.message))
 
-            if response.status_code < 300:
-                completion = response.json().get('choices')[0]
-                return {'status': 'success', 'message': {'role': 'assistant', 'content': completion.get('text', '')}}
-            elif response.status_code == 429:
-                if self.options.logRequests:
-                    print(Colorize.title('HEADERS:'))
-                    print(Colorize.output(response.headers))
-                return {'status': 'rate_limited', 'message': 'The text completion API returned a rate limit error.'}
+            if response.status == 'success':
+                completion = response.message
+                return {'status': 'success', 'message': completion}
             else:
-                return {'status': 'error', 'message': f"The text completion API returned an error status of {response.status_code}: {response.reason}"}
+                return {'status': 'error', 'message': f"The text completion API returned an error status of {response.status}: {response.message}"}
         else:
             result = await prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
             if result.tooLong:
@@ -80,25 +85,20 @@ class OSClient(PromptCompletionClient):
             if self.options['logRequests']:
                 print(Colorize.title('CHAT PROMPT:'))
                 print(Colorize.output(result.output))
-            print(f'************* render as messages {result}')
+            #print(f'************* render as messages {result}')
             request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
-            response = self.createChatCompletion(request)
-            if self.options.logRequests:
+            response = await self.createChatCompletion(request)
+            if self.options['logRequests']:
                 print(Colorize.title('CHAT RESPONSE:'))
-                print(Colorize.value('statuse', response.status_code))
+                print(Colorize.value('status', response.status))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
-                print(Colorize.output(response.json()))
+                print(Colorize.output(response.text))
 
-            if response.status_code < 300:
-                completion = response.json().get('choices')[0]
-                return {'status': 'success', 'message': completion.get('message', {'role': 'assistant', 'content': ''})}
-            elif response.status_code == 429:
-                if self.options.logRequests:
-                    print(Colorize.title('HEADERS:'))
-                    print(Colorize.output(response.headers))
-                return {'status': 'rate_limited', 'message': 'The chat completion API returned a rate limit error.'}
+            if response.status == 'success':
+                completion = response.message
+                return {'status': 'success', 'message': completion}
             else:
-                return {'status': 'error', 'message': f"The chat completion API returned an error status of {response.status_code}: {response.reason}"}
+                return {'status': 'error', 'message': f"The chat completion API returned an error status of {response.status}: {response.message}"}
 
     def addRequestHeaders(self, headers: Dict[str, str], options: OSClientOptions):
         headers['Authorization'] = f"Bearer {options.apiKey}"
@@ -124,5 +124,14 @@ class OSClient(PromptCompletionClient):
             'Content-Type': 'application/json',
             'User-Agent': self.UserAgent
         }
-        print(body)
-        result = await ut.ask_LLM(body)
+        #print(f'***** OSClient sending {body.messages}')
+        result = ''
+        try:
+            result = ut.ask_LLM(ut.MODEL, body.messages)
+            runon_idx = result.find(client.USER)
+            if runon_idx > 0:
+                result = result[:runon_idx]
+        except Exception as e:
+            print(f'***** OSCLient model returned {result}')
+            return PromptResponse(status='error',message=str(e))
+        return PromptResponse(status='success', message = {'role':'assistant', 'content': result})

@@ -9,44 +9,23 @@ import tkinter as tk
 import time
 
 MODEL_NAME = None; WORKER_ADDR=None; CONTROLLER_ADDRESS = "http://localhost:21001"
-
-fastchat.conversation.register_conv_template(Conversation(
-        name="wizard",
-        system="",
-        roles=("HUMAN", "ASSISTANT"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep=" ",
-        sep2="</s>",
-    )
-)
-fastchat.conversation.register_conv_template(Conversation(
-    name="guanaco",
-        system="",
-        roles=("\n### HUMAN", "\n### ASSISTANT"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep=" ",
-        sep2="\n",
-    )
-)
+USER = '\n### HUMAN:\n'
+ASSISTANT = '\n### ASSISTANT:\n'
 
 host='192.168.1.195'
 port = 5004
 def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None): 
-    conv=fastchat.conversation.get_conv_template('guanaco')
+    prompt = ''
     for msg in messages:
         #print(f'  {msg}')
         role = msg['role']
-        if role.lower() == 'user':
-            role_index = 0
-        else:
-            role_index = 1
-        conv.append_message(conv.roles[role_index], msg['content'])
-    conv.append_message(conv.roles[1], '')
-    prompt = conv.get_prompt()
+        if role.lower() == 'user' or role.lower() == 'system':
+            role_os = USER
+        elif role.lower() == 'assistant':
+            role_os = ASSISTANT
+        else: print(f'***** unknown role {role}')
+        prompt += role_os + str(msg['content'])
+    prompt += ASSISTANT
     server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
     smj = json.dumps(server_message)
     try:
@@ -55,14 +34,16 @@ def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None):
         client_socket.settimeout(240)
         server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
         smj = json.dumps(server_message)
+        #print(f'***** LLMClient msg to server {server_message}')
         client_socket.sendall(smj.encode('utf-8'))
         client_socket.sendall(b'x00xff')
         response = ''
         while True:
-            s = client_socket.recv(32) # break every 32 chars to stream output
+            s = client_socket.recv(1024) # break every 32 chars to stream output
             if s is None or not s:
                 break
             if (len(s) > 5 and s[-3:] == b'xff' and s[-6:-3] == b'x00'):
+                #print('***** LLMClient end of response detected')
                 s = s[:-6].decode('utf-8')
                 s = s.replace('</s>', '')
                 s = s.replace('<s>', '')
@@ -70,7 +51,7 @@ def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None):
                     tkdisplay.insert(tk.END, s)
                     if tkroot is not None:
                         tkroot.update()
-                    response += s
+                response += s
                 break
             else:
                 s = s.decode('utf-8')
@@ -81,8 +62,9 @@ def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None):
                     if tkroot is not None:
                         tkroot.update()
                 response += s
+        #print(f'***** LLMClient connection closed\n {response}\n')
         client_socket.close()  # close the connection
-        print('\n')
+        #print('\n')
         return response
     except: 
         traceback.print_exc()
@@ -121,10 +103,10 @@ def send(messages, temperature=0.0, max_tokens= 500):
     ###
     ### build prompt
     #
-    print(f'*******prompt')
+    #print(f'*******prompt')
     conv=fastchat.conversation.get_conv_template('wizard')
     for msg in messages:
-        print(f'  {msg}')
+        #print(f'  {msg}')
         role = msg['role']
         if role.lower() == 'user':
             role_index = 0
@@ -133,7 +115,7 @@ def send(messages, temperature=0.0, max_tokens= 500):
         conv.append_message(conv.roles[role_index], msg['content'])
     conv.append_message(conv.roles[1], '')
     prompt = conv.get_prompt()
-    print(f'******* final prompt {len(prompt)}\n{prompt}')
+    #print(f'******* final prompt {len(prompt)}\n{prompt}')
     headers = {"User-Agent": "FastChat Client"}
     gen_params = {
         "model": MODEL_NAME,
@@ -150,7 +132,7 @@ def send(messages, temperature=0.0, max_tokens= 500):
         json=gen_params,
         stream=True,
     )
-    print(f'***** response\n{response}')
+    #print(f'***** response\n{response}')
     return response
 
 def initialize(model_nm, controller_addr=CONTROLLER_ADDRESS):
@@ -187,7 +169,7 @@ def send_w_stream(messages, temperature=0.0, max_tokens= 500):
     ###
     ### build prompt
     #
-    print(f'*******prompt')
+    #print(f'*******prompt')
     conv=fastchat.conversation.get_conv_template('wizard')
     """
     conv = Conversation(
@@ -202,7 +184,7 @@ def send_w_stream(messages, temperature=0.0, max_tokens= 500):
     )
     """
     for msg in messages:
-        print(f'  {msg}')
+        #print(f'  {msg}')
         role = msg['role']
         if role.lower() == 'user':
             role_index = 0
@@ -211,7 +193,7 @@ def send_w_stream(messages, temperature=0.0, max_tokens= 500):
         conv.append_message(conv.roles[role_index], msg['content'])
     conv.append_message(conv.roles[1], '')
     prompt = conv.get_prompt()
-    print(f'\n\n******* final prompt {len(prompt)}\n{prompt}\n\n')
+    #print(f'\n\n******* final prompt {len(prompt)}\n{prompt}\n\n')
 
     headers = {"User-Agent": "FastChat Client"}
     gen_params = {

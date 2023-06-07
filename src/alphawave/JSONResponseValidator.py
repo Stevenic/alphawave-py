@@ -11,10 +11,12 @@ class JSONResponseValidator(PromptResponseValidator):
 
     def validate_response(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, response: PromptResponse, remaining_attempts: int) -> Validation:
         message = response['message']
+        #print(f'***** JSON ResponseValidator \n{response}, \n {message}\n\n')
         text = message if isinstance(message, str) else message.get('content', '')
 
         # Parse the response text
         parsed = Response.parse_all_objects(text)
+        #print(f'***** JSON ResponseValidator Response.parse_all \n{parsed}n\n')
         if len(parsed) == 0:
             return {
                 'type': 'Validation',

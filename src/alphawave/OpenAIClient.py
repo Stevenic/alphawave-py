@@ -34,7 +34,8 @@ class OpenAIClient(PromptCompletionClient):
                 raise ValueError(f"Client created with an invalid endpoint of '{options['endpoint']}'. The endpoint must be a valid HTTPS url.")
 
         if not self.options['apiKey']:
-            raise ValueErroprint("Client created without an 'apiKey'.")
+            print("Client created without an 'apiKey'.")
+            raise ValueError
 
         self._session = requests.Session()
 

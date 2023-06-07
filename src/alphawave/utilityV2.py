@@ -5,7 +5,7 @@ import traceback
 import json
 import os
 from typing import Any, Dict, List, Tuple
-import LLM_client as client
+import alphawave.LLMClient as client
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -17,8 +17,8 @@ VICUNA_13B = 'vicuna-13b'
 WIZARD_13B = 'wizard-13b'
 WIZARD_30B = 'wizard-30b'
 GUANACO_33B = 'guanaco-33b'
-#MODEL = WIZARD_30B
-MODEL = GPT_35
+MODEL = WIZARD_30B
+#MODEL = GPT_35
 #MODEL = GPT_4
 #MODEL = GUANACO_33B
 
@@ -26,7 +26,7 @@ if not MODEL.startswith('gpt') and MODEL != WIZARD_30B and MODEL != GUANACO_33B:
   # this for connecting to fastchat server
   client.initialize(MODEL)
 
-def ask_llm(model, gpt_message, max_tokens=500, temp=0.01, top_p=0.1, tkroot = None, tkdisplay=None):
+def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, tkroot = None, tkdisplay=None):
     completion = None
     response = ''
     try:
@@ -75,4 +75,4 @@ def ask_llm(model, gpt_message, max_tokens=500, temp=0.01, top_p=0.1, tkroot = N
     return response
 
 if __name__ == '__main__':  
-  print(ask_gpt(ut.MODEL, gpt_message, max_tokens=100, temp=.1, top_p=0.1))
+  print(ask_LLM(ut.MODEL, gpt_message, max_tokens=100, temp=.1, top_p=0.1))
