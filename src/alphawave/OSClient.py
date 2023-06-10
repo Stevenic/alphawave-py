@@ -11,18 +11,33 @@ from promptrix.AssistantMessage import AssistantMessage
 
 from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse
 from alphawave.internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
-import alphawave.Colorize as Colorize
+from alphawave.Colorize import Colorize
 import alphawave.utilityV2 as ut
 import alphawave.LLMClient as client
 
 @dataclass
-class OSClientOptions:
+class OSClientOptions(PromptCompletionOptions):
     def __init__(self, apiKey, organization = None, endpoint = None, logRequests = None):
         self.apiKey = apiKey
         self.organization = organization
         self.endpoint = endpoint
         self.logRequests = logRequests
 
+def update_dataclass(instance, **kwargs):
+    for key, value in kwargs.items():
+        if hasattr(instance, key):
+            setattr(instance, key, value)
+
+def get_values(instance, keys):
+    values = []
+    for key in keys:
+        if hasattr(instance, key):
+            values.append(getattr(instance, key))
+        else:
+            values.append(None)
+    return values
+
+        
 @dataclass
 class Response:
     status_code: int
@@ -35,26 +50,27 @@ class OSClient(PromptCompletionClient):
     UserAgent = 'AlphaWave'
 
     def __init__(self, **kwargs):
-        self.options = {'apiKey':None, 'organization':None, 'endpoint':None, 'logRequests':False}
-        self.options.update(kwargs)
-        if self.options['endpoint']:
-            self.options['endpoint'] = self.options['endpoint'].strip()
-            if self.options['endpoint'].endswith('/'):
-                self.options['endpoint'] = self.options['endpoint'][:-1]
-
-            if not self.options['endpoint'].lower().startswith('https://'):
-                raise ValueError(f"Client created with an invalid endpoint of '{options['endpoint']}'. The endpoint must be a valid HTTPS url.")
-
-        if not self.options['apiKey']:
-            print("Client created without an apiKey.")
+        self.options = OSClientOptions(apiKey=None, organization=None, endpoint= '127.0.0.1', logRequests=False)
+        update_dataclass(self.options, **kwargs)
+        if self.options.endpoint:
+            self.options.endpoint = self.options.endpoint.strip()
+            if self.options.endpoint.endswith('/'):
+                self.options.endpoint = self.options.endpoint[:-1]
 
         self._session = requests.Session()
 
-    async def complete_prompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
+    async def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
+        if isinstance(options, dict):
+            argoptions = options
+            options = PromptCompletionOptions(completion_type = argoptions['completion_type'], model = argoptions['model'])
         startTime = time.time()
         #print('enter complete prompt')
-        max_input_tokens = options.max_input_tokens or 1024
-        if options.completion_type == 'text':
+        max_input_tokens = 2048
+        if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
+            max_input_tokens = options.max_input_tokens
+        if hasattr(options, 'completion_type') and options.completion_type == 'text':
+            result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
+        if hasattr(options, 'completion_type') and options.completion_type == 'text':
             result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
             if result.tooLong:
                 return {'status': 'too_long', 'message': f"The generated text completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
@@ -63,7 +79,7 @@ class OSClient(PromptCompletionClient):
                 print(Colorize.output(result.output))
 
             request = self.copyOptionsToRequest(CreateCompletionRequest({
-                'model': options.model,
+                'model': optionsmodel,
                 'prompt': result.output,
             }), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
             response = self.createCompletion(request)
@@ -82,17 +98,19 @@ class OSClient(PromptCompletionClient):
             result = await prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
             if result.tooLong:
                 return {'status': 'too_long', 'message': f"The generated chat completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
-            if self.options['logRequests']:
+            self.options.logRequests = True
+            if self.options.logRequests:
                 print(Colorize.title('CHAT PROMPT:'))
                 print(Colorize.output(result.output))
             #print(f'************* render as messages {result}')
             request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
-            response = await self.createChatCompletion(request)
-            if self.options['logRequests']:
+            response = self.createChatCompletion(request)
+            self.options.logRequests = True
+            if self.options.logRequests:
                 print(Colorize.title('CHAT RESPONSE:'))
                 print(Colorize.value('status', response.status))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
-                print(Colorize.output(response.text))
+                print(Colorize.output(response))
 
             if response.status == 'success':
                 completion = response.message
@@ -116,10 +134,10 @@ class OSClient(PromptCompletionClient):
         return self.post(url, request)
 
     def createChatCompletion(self, request: CreateChatCompletionRequest) -> requests.Response:
-        url = f"{self.options['endpoint'] or self.DefaultEndpoint}/v1/chat/completions"
+        url = f"{self.options.endpoint or self.DefaultEndpoint}/v1/chat/completions"
         return self.post(url, request)
 
-    async def post(self, url: str, body: object) -> requests.Response:
+    def post(self, url: str, body: object) -> requests.Response:
         requestHeaders = {
             'Content-Type': 'application/json',
             'User-Agent': self.UserAgent
@@ -132,6 +150,6 @@ class OSClient(PromptCompletionClient):
             if runon_idx > 0:
                 result = result[:runon_idx]
         except Exception as e:
-            print(f'***** OSCLient model returned {result}')
+            #print(f'***** OSCLient model returned {result}')
             return PromptResponse(status='error',message=str(e))
         return PromptResponse(status='success', message = {'role':'assistant', 'content': result})

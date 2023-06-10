@@ -1,9 +1,11 @@
 import json
-
+import re
 class Response:
     @staticmethod
     def parse_all_objects(text):
         objects = []
+        if text is None:
+            return objects
         lines = text.split('\n')
         if len(lines) > 1:
             for line in lines:
@@ -20,6 +22,7 @@ class Response:
 
     @staticmethod
     def parse_json(text):
+        text = re.sub(r"'([^\"']+)':", r'"\1":', text)
         start_brace = text.find('{')
         if start_brace >= 0:
             obj_text = text[start_brace:]
@@ -68,6 +71,6 @@ class Response:
                 obj = json.loads(cleaned)
                 return obj if len(obj.keys()) > 0 else None
             except json.JSONDecodeError:
-                return None
+                return cleaned
         else:
             return None

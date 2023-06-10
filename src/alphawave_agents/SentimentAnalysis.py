@@ -66,7 +66,7 @@ def chat(botMessage=None):
         exit()
     else:
         # Route users message to wave
-        result = wave.complete_prompt(input)
+        result = wave.completePrompt(input)
         if result.status == 'success':
             chat(result.message.content)
         else:

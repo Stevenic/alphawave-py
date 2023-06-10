@@ -1,19 +1,45 @@
 from typing import Callable, Any, Dict, Union
-from promptrix import PromptMemory, PromptFunctions, Tokenizer, Utilities
-from alphawave import AlphaWave, AlphaWaveOptions, MemoryFork
-from SchemaBasedCommand import SchemaBasedCommand, CommandSchema
-from types import TaskResponse
+from dataclasses import dataclass, asdict
+from promptrix.promptrixTypes import PromptMemory, PromptFunctions, Tokenizer
+from promptrix.Utilities import Utilities
+from promptrix.Prompt import Prompt
+from alphawave.AlphaWave import AlphaWave
+from alphawave.AlphaWave import AlphaWaveOptions
+from alphawave.alphawaveTypes import PromptCompletionOptions
+from alphawave.MemoryFork import MemoryFork
+from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand, CommandSchema as sbcCommandSchema
+from alphawave_agents.agentTypes import TaskResponse
 
+@dataclass
+class CommandSchema(sbcCommandSchema):
+    schema_type: str
+    title: str
+    description: str
+    properties: Dict[str,Dict[str,str]]
+    required: list[str] = None
+    returns: str = None
+
+def update_dataclass(instance, **kwargs):
+    for key, value in kwargs.items():
+        if hasattr(instance, key):
+            setattr(instance, key, value)
+
+    
+@dataclass
 class PromptCommandOptions(AlphaWaveOptions):
-    def __init__(self, schema: CommandSchema, parseResponse: Callable[[str, Dict[str, Any], PromptMemory, PromptFunctions, Tokenizer], Any] = None):
-        super().__init__()
-        self.schema = schema
-        self.parseResponse = parseResponse
+    def __init__(self, prompt_options: PromptCompletionOptions, schema: CommandSchema, parseResponse: Callable[[str, Dict[str, Any], PromptMemory, PromptFunctions, Tokenizer], Any] = None):
+        super().__init__(prompt_options)
+        self.prompt_options=prompt_options
+        self.schema=schema
+        self.parseResponse=parseResponse
 
 class PromptCommand(SchemaBasedCommand):
-    def __init__(self, options: PromptCommandOptions, title: str = None, description: str = None):
+    def __init__(self, client, prompt: Prompt, options: PromptCommandOptions, title: str = None, description: str = None):
         super().__init__(options.schema, title, description)
         self.options = options
+        self.client = client
+        self.prompt = prompt
+        self.prompt_options = options.prompt_options
 
     async def execute(self, input: Dict[str, Any], memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> Union[TaskResponse, str]:
         # Fork memory and copy the input into the fork
@@ -22,20 +48,24 @@ class PromptCommand(SchemaBasedCommand):
             fork.set(key, value)
 
         # Create a wave and send it
-        options = {**self.options.__dict__, "memory": fork, "functions": functions, "tokenizer": tokenizer}
-        wave = AlphaWave(options)
+        #options = AlphaWaveOptions()
+        #update_dataclass(options, **self.options.__dict__)
+        #update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
+        wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=memory, functions=functions, tokenizer=tokenizer)
         response = await wave.completePrompt()
 
         # Process the response
-        message = response.message.content if isinstance(response.message, dict) else response.message
-        if response.status == "success":
+        message = response['message']['content'] if isinstance(response['message'], dict) else response['message']
+        if response['status'] == "success":
             # Return the response
+            print(response)
             parsed = await self.options.parseResponse(message, input, memory, functions, tokenizer) if self.options.parseResponse else message
-            return Utilities.toString(tokenizer, parsed)
+            return Utilities.to_string(tokenizer, parsed)
         else:
             # Return the error
             return {
                 "type": "TaskResponse",
-                "status": response.status,
+                "status": response['status'],
                 "message": message
             }
+

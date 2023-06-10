@@ -74,9 +74,9 @@ async def chat(botMessage=None):
             await chat(result['message']['content'])
         else:
             if result['message']:
-                print(f"{result['status']}: {result['message']}")
+                print(f"\nERROR\n {result['status']}: {result['message']}\n")
             else:
-                print(f"A result status of '{result['status']}' was returned.")
+                print(f"\nA result status of '{result['status']}' was returned.\n")
             exit()
 
 # Start chat session

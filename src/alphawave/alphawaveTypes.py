@@ -5,7 +5,7 @@ from typing import Any, Optional, Union, List
 from promptrix.promptrixTypes import Message, PromptFunctions, PromptMemory, PromptSection, Tokenizer
 
 class PromptCompletionClient:
-    def complete_prompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: 'PromptCompletionOptions') -> 'Promise[PromptResponse]':
+    def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: 'PromptCompletionOptions') -> 'Promise[PromptResponse]':
         pass
 
 class PromptResponseValidator:

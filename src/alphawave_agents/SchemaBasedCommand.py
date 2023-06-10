@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional, Union
 #import json
 from promptrix.promptrixTypes import PromptMemory, PromptFunctions, Tokenizer
 from dataclasses import dataclass, asdict
+import traceback
 
 @dataclass
 class CommandSchema:
@@ -58,8 +59,12 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
                 'value': cleaned
             }
         except ValidationError as e:
-            errors = [f'"{e.path[0] if e.path else "input"}": {e.message}' for e in e.context]
-            message = "\n".join(errors)
+            errors = f'"{e.path[0] if e.path else "input"}": {e.message}'
+            #print(f'\n****** SchemaBasedCommand errors {errors}\n')
+            #print(f'****** SchemaBasedCommand input {input}\n')
+            #print(f'****** SchemaBasedCommand cleaned {cleaned}\n')
+            #print(f'****** SchemaBasedCommand schema {self._schema}\n')
+            message = errors
             return {
                 'type': 'Validation',
                 'valid': False,

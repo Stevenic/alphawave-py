@@ -30,9 +30,9 @@ class TestClientTest(unittest.TestCase):
         self.assertEqual(client.status, 'error')
         self.assertEqual(client.response, 'Hello Error')
 
-    def test_complete_prompt(self):
+    def test_completePrompt(self):
         client = TestClient()
-        response = asyncio.run(client.complete_prompt(self.memory, self.functions, self.tokenizer, self.prompt, self.options))
+        response = asyncio.run(client.completePrompt(self.memory, self.functions, self.tokenizer, self.prompt, self.options))
         self.assertEqual(response['status'], 'success')
         self.assertEqual(response['message'], {'role': 'assistant', 'content': 'Hello World'})
 

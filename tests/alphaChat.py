@@ -30,7 +30,7 @@ wave = AlphaWave(
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
         model = 'gpt-3.5-turbo',
-        temperature = 0.9,
+        temperature = 0.7,
         max_input_tokens= 2000,
         max_tokens= 1000
         )

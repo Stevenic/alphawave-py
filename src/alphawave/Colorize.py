@@ -35,5 +35,15 @@ class Colorize:
         return f"{field}: "+Colorize.output(value, '\"')
 
     @staticmethod
+    def trace(trace):
+        return colored(trace, 'grey')
+
+    @staticmethod
     def warning(warning):
         return colored(warning, 'yellow')
+
+    @staticmethod
+    def error(error):
+        return colored(error, 'red')
+
+    

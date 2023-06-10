@@ -1,6 +1,7 @@
 import requests, time, copy
 from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass, asdict
+import json
 from promptrix.promptrixTypes import PromptFunctions, PromptMemory, PromptSection, Tokenizer
 from promptrix.SystemMessage import SystemMessage
 from promptrix.ConversationHistory import ConversationHistory
@@ -8,7 +9,7 @@ from promptrix.AssistantMessage import AssistantMessage
 
 from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse
 from alphawave.internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
-import alphawave.Colorize as Colorize
+from alphawave.Colorize import Colorize
 
 @dataclass
 class OpenAIClientOptions:
@@ -17,6 +18,11 @@ class OpenAIClientOptions:
         self.organization = organization
         self.endpoint = endpoint
         self.logRequests = logRequests
+
+def update_dataclass(instance, **kwargs):
+    for key, value in kwargs.items():
+        if hasattr(instance, key):
+            setattr(instance, key, value)
 
 class OpenAIClient(PromptCompletionClient):
     DefaultEndpoint = 'https://api.openai.com'
@@ -39,9 +45,13 @@ class OpenAIClient(PromptCompletionClient):
 
         self._session = requests.Session()
 
-    async def complete_prompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
+    async def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         startTime = time.time()
         max_input_tokens = 1024
+        if isinstance(options, dict):
+            argoptions = options
+            options = PromptCompletionOptions(completion_type = argoptions['completion_type'], model = argoptions['model'])
+            update_dataclass(options, **argoptions)
         if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
             max_input_tokens = options.max_input_tokens
         if hasattr(options, 'completion_type') and options.completion_type == 'text':
@@ -59,7 +69,7 @@ class OpenAIClient(PromptCompletionClient):
             response = self.createCompletion(request)
             if self.options['logRequests']:
                 print(Colorize.title('RESPONSE:'))
-                print(Colorize.value('statuse', response.status))
+                print(Colorize.value('status', response.status))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
                 print(Colorize.output(response.json()))
 
@@ -130,5 +140,13 @@ class OpenAIClient(PromptCompletionClient):
         for key in keys:
             if jsonbody[key] is None:
                 del jsonbody[key]
-        return self._session.post(url, json=jsonbody, headers=requestHeaders)
+        #print(f"\n***** gpt query {json.dumps(jsonbody['messages'][-2:], indent=2)}\n")
+        result = self._session.post(url, json=jsonbody, headers=requestHeaders)
+        if result.status_code < 300:
+            completion = result.json().get('choices')[0]
+            #print(f'\n***** gpt result {completion}\n')
+        else:
+            print(f'\n***** gpt result {result.status_code}\n')
+
+        return result
         

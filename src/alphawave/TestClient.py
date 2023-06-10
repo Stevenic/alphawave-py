@@ -8,5 +8,5 @@ class TestClient(PromptCompletionClient):
         self.status = status
         self.response = response
 
-    async def complete_prompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
+    async def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         return {'status': self.status, 'message': self.response}

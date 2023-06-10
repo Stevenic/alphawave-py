@@ -21,7 +21,6 @@ class TestValidator(PromptResponseValidator):
         self.client = client
 
     def validate_response(self, memory, functions, tokenizer, response, remaining_attempts):
-        print('validate')
         if self.exception:
             exception = self.exception
             self.exception = None
@@ -55,36 +54,35 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options)
         assert_that(wave).is_not_none()
         assert_that(wave.options).is_not_none()
-        assert_that(wave.options['client']).is_equal_to(self.client)
-        assert_that(wave.options['prompt']).is_equal_to(self.prompt)
-        assert_that(wave.options['prompt_options']).is_equal_to(self.prompt_options)
-        assert_that(isinstance(wave.options['memory'], VolatileMemory)).is_true()
-        assert_that(isinstance(wave.options['functions'], FunctionRegistry)).is_true()
-        assert_that(isinstance(wave.options['tokenizer'], GPT3Tokenizer)).is_true()
-        assert_that(isinstance(wave.options['validator'], DefaultResponseValidator)).is_true()
-        assert_that(wave.options['history_variable']).is_equal_to('history')
-        assert_that(wave.options['input_variable']).is_equal_to('input')
-        assert_that(wave.options['max_repair_attempts']).is_equal_to(3)
-        assert_that(wave.options['max_history_messages']).is_equal_to(10)
+        assert_that(wave.options.client).is_equal_to(self.client)
+        assert_that(wave.options.prompt).is_equal_to(self.prompt)
+        assert_that(wave.options.prompt_options).is_equal_to(self.prompt_options)
+        assert_that(isinstance(wave.options.memory, VolatileMemory)).is_true()
+        assert_that(isinstance(wave.options.functions, FunctionRegistry)).is_true()
+        assert_that(isinstance(wave.options.tokenizer, GPT3Tokenizer)).is_true()
+        assert_that(isinstance(wave.options.validator, DefaultResponseValidator)).is_true()
+        assert_that(wave.options.history_variable).is_equal_to('history')
+        assert_that(wave.options.input_variable).is_equal_to('input')
+        assert_that(wave.options.max_repair_attempts).is_equal_to(3)
+        assert_that(wave.options.max_history_messages).is_equal_to(10)
 
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator, history_variable='test_history', input_variable='test_input', max_repair_attempts=5, max_history_messages=20)
         assert_that(wave).is_not_none()
         assert_that(wave.options).is_not_none()
-        assert_that(wave.options['client']).is_equal_to(self.client)
-        assert_that(wave.options['prompt']).is_equal_to(self.prompt)
-        assert_that(wave.options['prompt_options']).is_equal_to(self.prompt_options)
-        assert_that(wave.options['memory']).is_equal_to(self.memory)
-        assert_that(wave.options['functions']).is_equal_to(self.functions)
-        assert_that(wave.options['tokenizer']).is_equal_to(self.tokenizer)
-        assert_that(wave.options['validator']).is_equal_to(self.validator)
-        assert_that(wave.options['history_variable']).is_equal_to('test_history')
-        assert_that(wave.options['input_variable']).is_equal_to('test_input')
-        assert_that(wave.options['max_repair_attempts']).is_equal_to(5)
-        assert_that(wave.options['max_history_messages']).is_equal_to(20)
+        assert_that(wave.options.client).is_equal_to(self.client)
+        assert_that(wave.options.prompt).is_equal_to(self.prompt)
+        assert_that(wave.options.prompt_options).is_equal_to(self.prompt_options)
+        assert_that(wave.options.memory).is_equal_to(self.memory)
+        assert_that(wave.options.functions).is_equal_to(self.functions)
+        assert_that(wave.options.tokenizer).is_equal_to(self.tokenizer)
+        assert_that(wave.options.validator).is_equal_to(self.validator)
+        assert_that(wave.options.history_variable).is_equal_to('test_history')
+        assert_that(wave.options.input_variable).is_equal_to('test_input')
+        assert_that(wave.options.max_repair_attempts).is_equal_to(5)
+        assert_that(wave.options.max_history_messages).is_equal_to(20)
 
     async def test_basic_prompt_completion(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
-        
         response = await wave.completePrompt()
         assert_that(response['status']).is_equal_to('success')
         assert_that(response['message']).is_equal_to({ 'role': 'assistant', 'content': 'Hello' })
@@ -103,7 +101,6 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         input = self.memory.get('input')
         assert_that(input).is_equal_to('Hi')
         self.memory.clear()
-
 
     async def test_prompt_completion_with_validation(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
