@@ -66,7 +66,6 @@ def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None):
     except: 
         traceback.print_exc()
 
-
     response = ''
     """try:
         client_socket = socket.socket()  # instantiate

@@ -53,12 +53,10 @@ class PromptCommand(SchemaBasedCommand):
         #update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=memory, functions=functions, tokenizer=tokenizer)
         response = await wave.completePrompt()
-
         # Process the response
         message = response['message']['content'] if isinstance(response['message'], dict) else response['message']
         if response['status'] == "success":
             # Return the response
-            print(response)
             parsed = await self.options.parseResponse(message, input, memory, functions, tokenizer) if self.options.parseResponse else message
             return Utilities.to_string(tokenizer, parsed)
         else:

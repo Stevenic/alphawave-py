@@ -28,7 +28,7 @@ schema = CommandSchema(
     required= ["question"],
     returns= "users answer"
 )
-print('AskCommand',asdict(schema))
+
 
 class AskCommandInput:
     def __init__(self, question: str):

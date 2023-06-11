@@ -14,7 +14,6 @@ class AgentCommandSection(PromptSectionBase):
 
     async def renderAsMessages(self, memory: Any, functions: Any, tokenizer: Any, max_tokens: int) -> Dict[str, Any]:
         # Render commands to message content
-        print('***** AgentCommandSection entry')
         content = 'commands:\n'
         for command in self._commands.values():
             content += f'\t{command.title}:\n'
@@ -27,6 +26,5 @@ class AgentCommandSection(PromptSectionBase):
         # Return as system message
         length = len(tokenizer.encode(content))
         result = self.return_messages([{'role': 'system', 'content': content}], length, tokenizer, max_tokens)
-        print('***** AgentCommandSection exit')
         return result
 

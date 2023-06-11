@@ -42,4 +42,4 @@ class EndSceneCommand(SchemaBasedCommand):
         memory.set('performance', None)
 
         # Prompt user with questions
-        return {'status':'success', 'message':input.question}
+        return {'status':'success', 'message':input['question']}

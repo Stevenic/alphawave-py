@@ -40,7 +40,6 @@ class JSONResponseValidator(PromptResponseValidator):
             y = json.loads(s)
             return y
         except json.JSONDecodeError:
-            print(f'***** JSON ResponseValidator parse_dict repair failed {s}\n')
             return s
 
     def validate_response(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, response: PromptResponse, remaining_attempts: int) -> Validation:
@@ -79,14 +78,6 @@ class JSONResponseValidator(PromptResponseValidator):
                     }
                 except ValidationError as e:
                     path = str(list(e.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
-                    #print(f'***** JSONResponseValidator error msg {e.message}')
-                    #print(f'***** JSONResponseValidator error validator {e.validator}')
-                    #print(f'***** JSONResponseValidator error validation_value {e.validator_value}')
-                    #print(f'***** JSONResponseValidator error relative_schema_path {path}')
-                    #print(f'***** JSONResponseValidator error relative_path {e.relative_path}')
-                    #print(f'***** JSONResponseValidator error absolute_path {e.absolute_path}')
-                    #print(f'***** JSONResponseValidator error context {e.context}')
-                    #print(f'***** JSONResponseValidator error cause {e.cause}')
                     if not errors:
                         errors = e
                     return {
@@ -102,7 +93,6 @@ class JSONResponseValidator(PromptResponseValidator):
                     }      
     
         else:
-            #print(f'***** JSON ResponseValidator SKIPPING VALIDATION\n')
             # Return the last object
             return {
                 'type': 'Validation',
@@ -114,7 +104,6 @@ class JSONResponseValidator(PromptResponseValidator):
         # Get argument as a string
         arg = error.validator
         path = str(list(error.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
-        #print(f'\n\n***** JSONResponseValidator GFIN {error.validator}, {error.validator_value}, {path}')
         
         switcher = {
             'type': f'convert "{path}" value to a {error.validator_value}' if len(path)> 0 else '',
@@ -127,6 +116,5 @@ class JSONResponseValidator(PromptResponseValidator):
             'const': f'change the "{path}" value to be {arg}',
         }
 
-        #print(f'***** JSONResponseValidator GFIN {switcher[arg] if arg in switcher else error.message}')
         return switcher[arg] if arg in switcher else error.message
 

@@ -1,5 +1,6 @@
 from typing import Any, Dict
 import asyncio
+from colorama import Fore, Style
 from dataclasses import dataclass, asdict
 from promptrix.promptrixTypes import PromptMemory
 from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand
@@ -42,7 +43,7 @@ class NarrateCommand(SchemaBasedCommand):
         super().__init__(schema, title, description)
 
     async def execute(self, input: NarrateCommandInput, memory: PromptMemory, functions: Any, tokenizer: Any) -> Any:
-        print(f'***** Narrate setting performance {input}')
+        print(f"{Fore.GREEN}{input['text']}{Style.RESET_ALL}")
         if 'performance' in input:
             memory.set('performance', input['performance'])
         return 'next line of dialog'

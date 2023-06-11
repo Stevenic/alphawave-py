@@ -60,21 +60,20 @@ class CharacterCommand(PromptCommand):
 
     @staticmethod
     async def parse_response(response: str, input: Dict[str, Any], memory: Dict[str, Any], extraArg1, extraArg2) -> str:
-        #print(f' CharacterCommand parse_response args response {response}')
-        #print(f' CharacterCommand parse_response args input {input}')
-        #print(f' CharacterCommand parse_response args memory {memory}')
-        #print(f' CharacterCommand parse_response args ea1 {extraArg1}')
-        #print(f' CharacterCommand parse_response args ea2 {extraArg2}')
         # Trim and combine dialog.
         response = response.replace('\n\n', '\n')
         response = ' '.join(line.strip() for line in response.split('\n'))
 
+        if not (type(input) is dict and  'name' in input):
+            print(f'***** CharacterCommand cant find name {input}')
         # Say line of dialog
-        print(f"{memory.get('name')}: {Fore.LIGHTBLACK_EX}{response}{Style.RESET_ALL}")
 
         # Add line to dialog
         response = f"{input['name']}: {response}"
+        print(f"{Fore.GREEN}{response}{Style.RESET_ALL}");
         dialog = memory.get('dialog')
+        if dialog is None:
+            dialog = []
         dialog.append(response)
-        memory['dialog'] = dialog
+        memory.set('dialog',dialog)
         return response

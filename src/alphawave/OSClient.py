@@ -64,7 +64,6 @@ class OSClient(PromptCompletionClient):
             argoptions = options
             options = PromptCompletionOptions(completion_type = argoptions['completion_type'], model = argoptions['model'])
         startTime = time.time()
-        #print('enter complete prompt')
         max_input_tokens = 2048
         if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
             max_input_tokens = options.max_input_tokens
@@ -109,7 +108,6 @@ class OSClient(PromptCompletionClient):
                         msg = msg.__dict__
                     print(Colorize.output(json.dumps(msg, indent=2)), end='')
                 print()
-            #print(f'************* render as messages {result}')
             request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
             response = self.createChatCompletion(request)
             self.options.logRequests = True
@@ -149,7 +147,6 @@ class OSClient(PromptCompletionClient):
             'Content-Type': 'application/json',
             'User-Agent': self.UserAgent
         }
-        #print(f'***** OSClient sending {body.messages}')
         result = ''
         try:
             result = ut.ask_LLM(ut.MODEL, body.messages)
@@ -157,6 +154,5 @@ class OSClient(PromptCompletionClient):
             if runon_idx > 0:
                 result = result[:runon_idx]
         except Exception as e:
-            #print(f'***** OSCLient model returned {result}')
             return PromptResponse(status='error',message=str(e))
         return PromptResponse(status='success', message = {'role':'assistant', 'content': result})

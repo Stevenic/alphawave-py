@@ -58,7 +58,6 @@ class AlphaWave(AsyncIOEventEmitter):
     async def completePrompt(self, input=None):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'log_repairs'))
 
-        #print(f'\n**************** Alphawave Initial completePrompt {validator} ******************\n')
         if self.options.input_variable:
             if input:
                 memory.set(input_variable, input)
@@ -136,22 +135,14 @@ class AlphaWave(AsyncIOEventEmitter):
             history = memory.get(variable) or []
             history.append(message)
             if len(history) > self.options.max_history_messages:
-                history = history[-self.options['max_history_messages']:]
+                history = history[self.options.max_history_messages:]
             memory.set(variable, history)
 
     async def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'log_repairs'))
 
-        print(f'\n**************** Alphawave repairResponse entry******************\n')
         # Are we out of attempts?
         feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
-        #if 'command character' in feedback:
-        #    print('Got it!')
-        #    try:
-        #        raise ValueError
-        #    except ValueError:
-        #        traceback.print_exc()
-        #print(f'\n***** Alphawave repair {feedback}\n')
             
         if remaining_attempts <= 0:
             return {
@@ -174,7 +165,6 @@ class AlphaWave(AsyncIOEventEmitter):
             print(Colorize.value('feedback', feedback))
 
         # Ask client to complete prompt
-        #print(f'\n**************** Alphawave repair completePrompt******************\n')
         repair_response = await client.completePrompt(fork, functions, tokenizer, repair_prompt, prompt_options)
         if repair_response['status'] != 'success':
             return repair_response

@@ -149,13 +149,9 @@ class OpenAIClient(PromptCompletionClient):
         for key in keys:
             if jsonbody[key] is None:
                 del jsonbody[key]
-        #print(f"\n***** gpt query {json.dumps(jsonbody['messages'][-2:], indent=2)}\n")
         result = self._session.post(url, json=jsonbody, headers=requestHeaders)
         if result.status_code < 300:
             completion = result.json().get('choices')[0]
-            #print(f'\n***** gpt result {completion}\n')
-        else:
-            print(f'\n***** gpt result {result.status_code}\n')
 
         return result
         
