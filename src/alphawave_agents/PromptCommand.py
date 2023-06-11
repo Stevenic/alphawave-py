@@ -1,5 +1,5 @@
 from typing import Callable, Any, Dict, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from promptrix.promptrixTypes import PromptMemory, PromptFunctions, Tokenizer
 from promptrix.Utilities import Utilities
 from promptrix.Prompt import Prompt
@@ -16,7 +16,7 @@ class CommandSchema(sbcCommandSchema):
     title: str
     description: str
     properties: Dict[str,Dict[str,str]]
-    required: list[str] = None
+    required: list[str] = field(default_factory=list)
     returns: str = None
 
 def update_dataclass(instance, **kwargs):

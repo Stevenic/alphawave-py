@@ -91,12 +91,14 @@ class AlphaWave(AsyncIOEventEmitter):
                 self.addResponseToHistory(memory, history_variable, response['message'])
                 return response
 
-            fork = MemoryFork(memory)
-            self.addInputToHistory(fork, history_variable, input)
-            self.addResponseToHistory(fork, history_variable, response['message'])
-
             if self.options.logRepairs:
                 print(Colorize.title('REPAIRING RESPONSE:'))
+                print(Colorize.output(memory))
+            fork = MemoryFork(memory)
+            #self.addInputToHistory(fork, history_variable, input)
+            #self.addResponseToHistory(fork, history_variable, response['message'])
+
+            if self.options.logRepairs:
                 print(Colorize.output(response['message']['content']))
 
             self.emit('beforeRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
@@ -140,6 +142,7 @@ class AlphaWave(AsyncIOEventEmitter):
     async def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'log_repairs'))
 
+        print(f'\n**************** Alphawave repairResponse entry******************\n')
         # Are we out of attempts?
         feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
         #if 'command character' in feedback:

@@ -12,7 +12,7 @@ class AgentCommandSection(PromptSectionBase):
         self.tokens = tokens
         self.required = required
 
-    async def render_as_messages(self, memory: Any, functions: Any, tokenizer: Any, max_tokens: int) -> Dict[str, Any]:
+    async def renderAsMessages(self, memory: Any, functions: Any, tokenizer: Any, max_tokens: int) -> Dict[str, Any]:
         # Render commands to message content
         print('***** AgentCommandSection entry')
         content = 'commands:\n'

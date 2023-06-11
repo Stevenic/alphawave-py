@@ -18,11 +18,19 @@ class Response:
             if obj:
                 objects.append(obj)
 
+        #print(f'***** Response return \n{objects}\n')
         return objects
 
     @staticmethod
     def parse_json(text):
-        text = re.sub(r"'([^\"']+)':", r'"\1":', text)
+        text = ''.join(c for c in text if c.isprintable())
+        text = text.replace('{\n', '{')
+        text = text.replace('}\n', '}')
+        #text = re.sub(r"'([^\"']+)'", r'"\1"', text) # all pairs as doublequote
+        text = re.sub(r"'([^\"']+)':", r'"\1":', text) # keys as doublequote
+        #text = re.sub(r'"([^\'"]+)":', r"'\1':", text) # keys as singlequote
+        #text = text.replace("'", '"')
+        #text = text.replace("\'", '"')
         start_brace = text.find('{')
         if start_brace >= 0:
             obj_text = text[start_brace:]
@@ -68,7 +76,11 @@ class Response:
                 cleaned += ''.join(reversed(nesting))
 
             try:
-                obj = json.loads(cleaned)
+                if type(cleaned) == str:
+                    obj = json.loads(cleaned)
+                    return obj
+                else:
+                    return cleaned
                 return obj if len(obj.keys()) > 0 else None
             except json.JSONDecodeError:
                 return cleaned

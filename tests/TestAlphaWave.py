@@ -8,7 +8,7 @@ from promptrix.GPT3Tokenizer import GPT3Tokenizer
 from promptrix.VolatileMemory import VolatileMemory
 from alphawave.alphawaveTypes import PromptCompletionOptions, PromptResponse, PromptResponseValidator, Validation
 from alphawave.DefaultResponseValidator import DefaultResponseValidator
-from alphawave.TestClient import TestClient
+from alphawave.RepairTestClient import TestClient as TestClient
 from alphawave.AlphaWave import AlphaWave
 
 class TestValidator(PromptResponseValidator):
@@ -84,6 +84,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
     async def test_basic_prompt_completion(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         response = await wave.completePrompt()
+        print(f'***** {response}')
         assert_that(response['status']).is_equal_to('success')
         assert_that(response['message']).is_equal_to({ 'role': 'assistant', 'content': 'Hello' })
         history = self.memory.get('history')

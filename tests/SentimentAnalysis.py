@@ -15,7 +15,7 @@ import asyncio
 # Read in .env file.
 
 # Create an OpenAI or AzureOpenAI client
-client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"))
+client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"), logRequests=True)
 
 # Define expected response schema and create a validator
 ResponseSchema = {

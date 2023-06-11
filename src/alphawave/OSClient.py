@@ -76,8 +76,11 @@ class OSClient(PromptCompletionClient):
                 return {'status': 'too_long', 'message': f"The generated text completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
             if self.options.logRequests:
                 print(Colorize.title('PROMPT:'))
-                print(Colorize.output(result.output))
-
+                for msg in result.output:
+                    if not isinstance(msg, dict):
+                        msg = msg.__dict__
+                    print(Colorize.output(json.dumps(msg, indent=2)), end='')
+                print()
             request = self.copyOptionsToRequest(CreateCompletionRequest({
                 'model': optionsmodel,
                 'prompt': result.output,
@@ -101,7 +104,11 @@ class OSClient(PromptCompletionClient):
             self.options.logRequests = True
             if self.options.logRequests:
                 print(Colorize.title('CHAT PROMPT:'))
-                print(Colorize.output(result.output))
+                for msg in result.output:
+                    if not isinstance(msg, dict):
+                        msg = msg.__dict__
+                    print(Colorize.output(json.dumps(msg, indent=2)), end='')
+                print()
             #print(f'************* render as messages {result}')
             request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
             response = self.createChatCompletion(request)

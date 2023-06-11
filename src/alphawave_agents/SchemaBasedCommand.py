@@ -50,9 +50,10 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
         raise NotImplementedError
 
     async def validate(self, input: Dict[str, Any], memory: 'PromptMemory', functions: 'PromptFunctions', tokenizer: 'Tokenizer') -> 'Validation':
-        cleaned = self.clean_input(input)
         try:
-            validate(cleaned, asdict(self._schema))
+            cleaned = self.clean_input(input)
+            if self._schema is not None:
+                validate(cleaned, asdict(self._schema))
             return {
                 'type': 'Validation',
                 'valid': True,
@@ -60,15 +61,11 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
             }
         except ValidationError as e:
             errors = f'"{e.path[0] if e.path else "input"}": {e.message}'
-            #print(f'\n****** SchemaBasedCommand errors {errors}\n')
-            #print(f'****** SchemaBasedCommand input {input}\n')
-            #print(f'****** SchemaBasedCommand cleaned {cleaned}\n')
-            #print(f'****** SchemaBasedCommand schema {self._schema}\n')
             message = errors
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': f'The command.input has errors:\n{message}\n\nTry again.'
+                'feedback': f"The ['command']['input'] field has errors:\n{message}\n\nTry again."
             }
 
     def clean_input(self, input: Dict[str, Any]) -> Dict[str, Any]:

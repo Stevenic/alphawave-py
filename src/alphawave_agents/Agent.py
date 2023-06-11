@@ -365,7 +365,9 @@ class Agent(SchemaBasedCommand):
 
     async def execute_command(self, state: AgentState, thought: AgentThought):
         # Get command
-        command = self._commands.get(thought['command']['name'])
+        command_name = thought['command']['input']['name'] if thought['command']['name'] == 'character' else thought['command']['name']
+        #print(f'***** Agent execute_command name {command_name}')
+        command = self._commands.get(command_name, None) or {}
         input = thought['command']['input'] or {}
         if isinstance(command, Agent):
             # Pass control to child agent
@@ -387,6 +389,7 @@ class Agent(SchemaBasedCommand):
                 return response
         else:
             # Execute command and return result
+            #print(f'***** Agent calling {command_name} {command}')
             return await command.execute(input, self.memory, self.functions, self.tokenizer)
 
     async def completeTask(self, input: Optional[str] = None, agentId: Optional[str] = None, executeInitialThought: bool = False):
@@ -398,8 +401,10 @@ class Agent(SchemaBasedCommand):
         state = self.get_agent_state(agentId)
         if 'child' in state and state['child'] is not None:
             childAgent = self.getCommand(state['child'].title)
+            #print(f'***** Agent completeTask name {childAgent}')
             response = await childAgent.completeTask(input, state['child'].agentId)
             if response.status != 'success':
+                #print(f'***** Agent completeTask {childAgent}')
                 return response
 
             # Delete child and save state
@@ -413,8 +418,10 @@ class Agent(SchemaBasedCommand):
             executeInitialThought = False
 
         # Start main task loop
+        #print(f'***** Agent completeTask options {self.options}')
         while step < self.options['max_steps']:
             # Wait for step delay
+            
             if step > 0 and self.options['step_delay'] > 0:
                 sys.stdout.flush()
                 await asyncio.sleep(self.options['step_delay']/1000)

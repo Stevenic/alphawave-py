@@ -5,6 +5,7 @@ import readline
 from alphawave.AlphaWave import AlphaWave
 from alphawave.alphawaveTypes import PromptCompletionOptions
 from alphawave.OpenAIClient import OpenAIClient
+from alphawave.OSClient import OSClient
 import promptrix
 from promptrix.Prompt import Prompt
 from promptrix.SystemMessage import SystemMessage
@@ -17,7 +18,8 @@ env_path = Path('..') / '.env'
 #load_dotenv(dotenv_path=env_path)
 
 # Create an OpenAI or AzureOpenAI client
-client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"))
+#client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"))
+client = OSClient(apiKey=os.getenv("OPENAI_API_KEY"), logRequests= True)
 
 # Create a wave
 wave = AlphaWave(
@@ -33,7 +35,7 @@ wave = AlphaWave(
         temperature = 0.7,
         max_input_tokens= 2000,
         max_tokens= 1000
-        )
+    )
 )
 
 # Define main chat loop
