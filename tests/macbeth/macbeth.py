@@ -10,7 +10,7 @@ from EndSceneCommand import EndSceneCommand
 from CharacterCommand import CharacterCommand
 
 # Create an OpenAI client
-client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY')) #, logRequests=True)
+client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 #client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 
 initial_prompt = "\n".join([
@@ -38,10 +38,10 @@ agent_options = AgentOptions(
     ],
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
-        model = 'gpt-3.5-turbo',
-        temperature = 0.0,
-        max_input_tokens = 3000,
-        max_tokens = 800,
+        model = 'gpt-3.5-turbo-0613',
+        temperature = 0.01,
+        max_input_tokens = 1700,
+        max_tokens = 2000,
     ),
     initial_thought={
         "thoughts": {
