@@ -96,23 +96,9 @@ asyncio.run(chat("Hello, how can I help you?"))
 
 One of the key features of Promptrix is its ability to proportionally layout prompts, so this prompt has an overall budget of 2000 input tokens. It will give the `SystemMessage` up to 50 tokens, the `UserMessage` up to 450 tokens, and then the `ConversationHistory` gets 100% of the remaining tokens.
 
-Next we just need to call `completePrompt()` on the wave to process the users input (in typescript for now, sorry):
+Once the prompt is formed, we just need to call `completePrompt()` on the wave to process the users input
 
-```typescript
-// Route users message to wave
-const result = await wave.completePrompt(input);
-switch (result.status) {
-    case 'success':
-        console.log((result.response as Message).content);
-        break;
-    default:
-        if (result.response) {
-            console.log(`${result.status}: ${result.response}`);
-        } else {
-            console.log(`A result status of '${result.status}' was returned.`);
-        }
-        break;
-}
-```
+The  parameter to wave.completePrompt is optional and the wave can also take input directly from memory, but you don't have to pass prompts input. You can see in the example that if the prompt doesn't reference the input via a `{{$input}}` template variable it won't use it anyway.
 
-The `input` parameter is optional and the wave can also take input directly from memory, but you don't have to pass prompts input. You can see in the example that if the prompt doesn't reference the input via a `{{$input}}` template variable it won't use it anyway.
+# Logging
+if you want to see the traffic with the server, the Client constructors (OSClient and OpenAIClient) take a logRequests parameter - False by default, set it to True to see prompts and responses on the console.
