@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Optional, Union, List
+import json
 
 # Equivalent to TypeScript's import statement
 from promptrix.promptrixTypes import Message, PromptFunctions, PromptMemory, PromptSection, Tokenizer

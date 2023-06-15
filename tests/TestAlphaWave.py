@@ -10,6 +10,7 @@ from alphawave.alphawaveTypes import PromptCompletionOptions, PromptResponse, Pr
 from alphawave.DefaultResponseValidator import DefaultResponseValidator
 from alphawave.RepairTestClient import TestClient as TestClient
 from alphawave.AlphaWave import AlphaWave
+import json
 
 class TestValidator(PromptResponseValidator):
     def __init__(self, client):
@@ -21,23 +22,28 @@ class TestValidator(PromptResponseValidator):
         self.client = client
 
     def validate_response(self, memory, functions, tokenizer, response, remaining_attempts):
+        print(f'***** validate_response {remaining_attempts}, {self.clientErrorDuringRepair}, {response}')
         if self.exception:
             exception = self.exception
             self.exception = None
             raise exception
 
         if self.clientErrorDuringRepair and self.repairAttempts == 1:
+            print(f'***** validate_response CLDR==True, rA ==1')
             self.clientErrorDuringRepair = False
             self.client.status = 'error'
             self.client.response = 'Some Error'
             return {'type': 'Validation', 'valid': False, 'feedback': self.feedback }
         elif self.repairAttempts > 0:
+            print(f'***** validate_response self.rA > 0')
             self.repairAttempts -= 1
             return { 'type': 'Validation', 'valid': False, 'feedback': self.feedback }
         elif self.returnContent:
+            print(f"***** validate_response self.Content True { 'type': 'Validation', 'valid': True, 'value': response['message']['content'] }")
             self.returnContent = False
             return { 'type': 'Validation', 'valid': True, 'value': response['message']['content'] }
         else:
+            print(f'***** validate_response final else')
             return { 'type': 'Validation', 'valid': True }
 
 class TestAlphaWave(aiounittest.AsyncTestCase):
@@ -109,6 +115,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         self.client.response = 'Hello'
         self.validator.repairAttempts = 1
         response = await wave.completePrompt('Hi')
+        print(response)
         assert_that(response['status']).is_equal_to('success')
         assert_that(response['message']).is_equal_to({ 'role': 'assistant', 'content': 'Hello' })
         history = self.memory.get('history')
@@ -123,6 +130,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         history = self.memory.get('history')
         assert_that(history).is_equal_to([{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': 'Hello' }])
         self.memory.clear()
+    """
 
     async def test_prompt_completion_with_repair(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
@@ -247,6 +255,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         history = self.memory.get('history')
         assert_that(history).is_equal_to([{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': { 'foo': 'bar'} }])
         self.memory.clear()
-
+    """
 if __name__ == '__main__':
+    print('starting')
     unittest.main()

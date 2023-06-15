@@ -39,6 +39,13 @@ def update_dataclass(instance, **kwargs):
         if hasattr(instance, key):
             setattr(instance, key, value)
 
+def display_dataclass(obj):
+    print ('\n ', obj)
+    for attr_name in dir(obj):
+        if not attr_name.startswith('__'):  # Exclude dunder (double underscore) attributes
+            attr_value = getattr(obj, attr_name)
+            print(f"    {attr_name}: {attr_value}")
+
 def get_values(instance, keys):
     values = []
     for key in keys:
@@ -123,6 +130,7 @@ class AlphaWave(AsyncIOEventEmitter):
             }
 
     def addInputToHistory(self, memory, variable, input):
+        #print(f'***** Alphawave addInputToHistory {variable}')
         if variable and input is not None and len(input) > 0:
             history = memory.get(variable) or []
             history.append({'role': 'user', 'content': input})
@@ -131,6 +139,7 @@ class AlphaWave(AsyncIOEventEmitter):
             memory.set(variable, history)
 
     def addResponseToHistory(self, memory, variable, message):
+        #print(f'***** Alphawave addResponseToHistory {variable}')
         if variable:
             history = memory.get(variable) or []
             history.append(message)

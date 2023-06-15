@@ -46,7 +46,7 @@ class CharacterCommand(PromptCommand):
         c_schema.title = name
         super().__init__(
             client=client,
-            prompt=Prompt([SystemMessage("You are the character of {{$name}} from Macbeth.\n\nScene:\n{{$scene}}\n\nDialog:\n{{$dialog}}\n\nRespond with your next line of dialog formatted as '{{$name}}: <line of dialog>'.\n\n{{$name}}:")]),
+            prompt=Prompt([SystemMessage("You are the character of "+name+" from Macbeth.\n\nScene:\n{{$scene}}\n\nDialog:\n{{$dialog}}\n\nRespond with your next line of dialog formatted as '"+name+": <line of dialog>'.\n\n"+name+":")]),
             options = PromptCommandOptions(prompt_options=PromptCompletionOptions(                                        
                 completion_type = 'chat' if model.startswith('gpt') else 'text',
                 model = model,
@@ -56,7 +56,7 @@ class CharacterCommand(PromptCommand):
                                            parseResponse = self.parse_response,
                                            schema = c_schema
                                            )
-            )
+        )
 
     @staticmethod
     async def parse_response(response: str, input: Dict[str, Any], memory: Dict[str, Any], extraArg1, extraArg2) -> str:
@@ -67,10 +67,9 @@ class CharacterCommand(PromptCommand):
         if not (type(input) is dict and  'name' in input):
             print(f'***** CharacterCommand cant find name {input}')
         # Say line of dialog
-
-        # Add line to dialog
         response = f"{input['name']}: {response}"
         print(f"{Fore.GREEN}{response}{Style.RESET_ALL}");
+        # Add line to dialog
         dialog = memory.get('dialog')
         if dialog is None:
             dialog = []

@@ -8,8 +8,31 @@ import ast
 import traceback
 import re
 
+def extract_json_template(schema, p=True):
+    template = {}
+    if schema is not None and "properties" in schema:
+        for key, value in schema["properties"].items():
+            if "type" in value:
+                if value["type"] == "object":
+                    template[key] = extract_json_template(value, p=False)
+                elif value["type"] == "array":
+                    if "items" in value:
+                        template[key] = [extract_json_template(value["items"], p=False)]
+                    else:
+                        template[key] = {}
+                else:
+                    template[key] = '<'+key+'>'
+            elif "$ref" in value:
+                ref = value["$ref"]
+                ref_schema = schema
+                for part in ref.split("/")[1:]:
+                    ref_schema = ref_schema[part]
+                template[key] = extract_json_template(ref_schema, p=False)
+
+    return template
+
 class JSONResponseValidator(PromptResponseValidator):
-    def __init__(self, schema=None, missing_json_feedback='Invalid JSON. Revise your previous response and return valid JSON as per the earlier schema.'):
+    def __init__(self, schema=None, missing_json_feedback='Invalid JSON. return valid JSON.'):
         self.schema = schema
         self.missing_json_feedback = missing_json_feedback
 
@@ -54,10 +77,11 @@ class JSONResponseValidator(PromptResponseValidator):
         except Exception as e:
             raise e
         if len(parsed) == 0:
+            template = extract_json_template(self.schema)
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_json_feedback
+                'feedback': self.missing_json_feedback+f' using this template: {template}'
             }
 
         # Validate the response against the schema
@@ -80,16 +104,18 @@ class JSONResponseValidator(PromptResponseValidator):
                     path = str(list(e.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
                     if not errors:
                         errors = e
+                    template = extract_json_template(self.schema)
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. Revise your previous response to strict JSON format standards and this schema {self.schema}'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. respond using this template: {template}'
                     }
                 except Exception as e:
+                    template = extract_json_template(self.schema)
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. Revise your previous response to strict JSON format standards and this schema {self.schema}'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. respond using this template: {template}'
                     }      
     
         else:

@@ -18,8 +18,8 @@ env_path = Path('..') / '.env'
 #load_dotenv(dotenv_path=env_path)
 
 # Create an OpenAI or AzureOpenAI client
-#client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"))
-client = OSClient(apiKey=os.getenv("OPENAI_API_KEY"), logRequests= True)
+client = OpenAIClient(apiKey=os.getenv("OPENAI_API_KEY"), logRequests= True)
+#client = OSClient(apiKey=os.getenv("OPENAI_API_KEY"), logRequests= True)
 
 # Create a wave
 wave = AlphaWave(
@@ -54,7 +54,6 @@ async def chat(bot_message=None):
         # Route users message to wave
         result = await wave.completePrompt(user_input)
         if result['status'] == 'success':
-            print(result)
             await chat(result['message']['content'])
         else:
             if result['message']:

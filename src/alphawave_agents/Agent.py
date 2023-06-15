@@ -29,6 +29,7 @@ from alphawave_agents.AgentCommandSection import AgentCommandSection
 
 from typing import Dict, Any
 from pydantic import BaseModel, Field
+import traceback
 
 class AgentCommandSchema(BaseModel):
     type: str = Field("object", description="an agent that can perform a task")
@@ -172,17 +173,17 @@ class Agent(SchemaBasedCommand):
     def hasCommand(self, title: str):
         return title in self._commands
 
-    # Task execution
-
     async def completeTask(self, input: Optional[str] = None, agentId: Optional[str] = None, executeInitialThought: bool = False):
+      try:
         # Initialize the input to the next step
         stepInput = input if input is not None else self.memory.get(self.options['input_variable'])
         # Dispatch to child agent if needed
         step = 0
         state = self.get_agent_state(agentId)
-        if state.child:
-            childAgent = self.getCommand(state.child.title)
-            response = await childAgent.completeTask(input, state.child.agentId)
+        if 'child' in state and state['child'] is not None:
+            childAgent = self.getCommand(state['child'].title)
+            
+            response = await childAgent.completeTask(input, state['child'].agentId)
             if response.status != 'success':
                 return response
 
@@ -199,8 +200,10 @@ class Agent(SchemaBasedCommand):
         # Start main task loop
         while step < self.options['max_steps']:
             # Wait for step delay
+            
             if step > 0 and self.options['step_delay'] > 0:
-                await asyncio.sleep(self.options['step_delay'])
+                sys.stdout.flush()
+                await asyncio.sleep(self.options['step_delay']/1000)
 
             # Execute next step
             result = await self.execute_next_step(stepInput, agentId, executeInitialThought)
@@ -218,6 +221,9 @@ class Agent(SchemaBasedCommand):
             "status": "too_many_steps",
             "message": "The current task has taken too many steps."
         }
+      except Exception as e:
+        traceback.print_exc()
+        pass
 
     # Agent as Commands
     async def execute(self, input: AgentCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer):
@@ -266,17 +272,16 @@ class Agent(SchemaBasedCommand):
             sections = [agent_prompt]
             sections.append(AgentCommandSection(self._commands))
             sections.append(PromptInstructionSection)
-#            prompt = Prompt([
-#                GroupSection(sections, 'system'),
-#                ConversationHistory(history_variable, 1.0, True)
-#            ])
             prompt = Prompt([
-                agent_prompt, AgentCommandSection(self._commands), PromptInstructionSection,
+                GroupSection(sections, 'system'),
                 ConversationHistory(history_variable, 1.0, True)
             ])
+            #prompt = Prompt([
+            #    agent_prompt, AgentCommandSection(self._commands), PromptInstructionSection,
+            #    ConversationHistory(history_variable, 1.0, True)
+            #])
             if input:
-                prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user: '))
-
+                prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user'))
                 # Ensure input variable is set otherwise the history will be wrong.
                 self.memory.set(self.options['input_variable'], input)
 
@@ -292,7 +297,8 @@ class Agent(SchemaBasedCommand):
                 # Add initial thought to history
                 if state['totalSteps'] == 0 and self._options['initial_thought']:
                     history = self.memory.get(history_variable) or []
-                    history.append({'role': 'assistant', 'content': json.dumps(self._options['initial_thought'])})
+                    message = {'role': 'assistant', 'content': json.dumps(self._options['initial_thought'])}
+                    history.append(message)
                     self.memory.set(history_variable, history)
 
                 # Create command validator
@@ -345,8 +351,9 @@ class Agent(SchemaBasedCommand):
             # Update history
             history = self.memory.get(history_variable) or []
             if input:
-                history.append({'role': 'user', 'content': input})
-            history.append({'role': 'assistant', 'content': json.dumps(thought)})
+                #history.append({'role': 'user', 'content': input})
+                pass
+            #history.append({'role': 'assistant', 'content': json.dumps(thought)})
             self.memory.set(history_variable, history)
 
             # Save the agents state
@@ -392,50 +399,3 @@ class Agent(SchemaBasedCommand):
                 return await response
             return response
 
-    async def completeTask(self, input: Optional[str] = None, agentId: Optional[str] = None, executeInitialThought: bool = False):
-        # Initialize the input to the next step
-        stepInput = input if input is not None else self.memory.get(self.options['input_variable'])
-
-        # Dispatch to child agent if needed
-        step = 0
-        state = self.get_agent_state(agentId)
-        if 'child' in state and state['child'] is not None:
-            childAgent = self.getCommand(state['child'].title)
-            response = await childAgent.completeTask(input, state['child'].agentId)
-            if response.status != 'success':
-                return response
-
-            # Delete child and save state
-            del state.child
-            self.setAgentState(state, agentId)
-
-            # Use agents response as input to the next step
-            # We don't know how many steps the child agent took, so we'll just assume it took one
-            stepInput = response.message
-            step = 1
-            executeInitialThought = False
-
-        # Start main task loop
-        while step < self.options['max_steps']:
-            # Wait for step delay
-            
-            if step > 0 and self.options['step_delay'] > 0:
-                sys.stdout.flush()
-                await asyncio.sleep(self.options['step_delay']/1000)
-
-            # Execute next step
-            result = await self.execute_next_step(stepInput, agentId, executeInitialThought)
-            if isinstance(result, str):
-                stepInput = result
-            else:
-                return result
-
-            step += 1
-            executeInitialThought = False
-
-        # Return too many steps
-        return {
-            "type": "TaskResponse",
-            "status": "too_many_steps",
-            "message": "The current task has taken too many steps."
-        }

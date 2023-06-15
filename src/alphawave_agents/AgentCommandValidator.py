@@ -41,7 +41,11 @@ class AgentCommandValidator:
           # Return the validated thought
           return validation_result
         except Exception as e:
-            pass
+            return {
+                'type': 'Validation',
+                'valid': False,
+                'feedback': f'The command validation failed. try again {str(e)}'
+                }
         return {
             'type': 'Validation',
             'valid': False,

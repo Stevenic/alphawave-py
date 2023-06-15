@@ -10,7 +10,7 @@ from EndSceneCommand import EndSceneCommand
 from CharacterCommand import CharacterCommand
 
 # Create an OpenAI client
-client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
 #client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 
 initial_prompt = "\n".join([
@@ -38,10 +38,10 @@ agent_options = AgentOptions(
     ],
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
-        model = 'gpt-3.5-turbo-0613',
-        temperature = 0.01,
-        max_input_tokens = 1700,
-        max_tokens = 2000,
+        model = 'gpt-3.5-turbo',
+        temperature = 0.0,
+        max_input_tokens = 2000,
+        max_tokens = 1000,
     ),
     initial_thought={
         "thoughts": {
@@ -75,7 +75,7 @@ for name in characters:
 agent.addCommand(CharacterCommand(client, 'gpt-3.5-turbo', 'extra', 'use for minor characters or any missing commands'))
 
 # Listen for new thoughts
-agent.events.on('newThought', lambda thought: print(f"[{thought['thoughts']['thought']}]"))
+#agent.events.on('newThought', lambda thought: print(f"[{thought['thoughts']['thought']}]"))
 
 # Define main chat loop
 async def chat(bot_message=None):
@@ -91,9 +91,7 @@ async def chat(bot_message=None):
         exit()
     else:
         # Route user's message to the agent
-        print(f'awaiting completion for {user_input} by agent')
         result = await agent.completeTask(user_input)
-        print(f"\n\n*********************MACBETH: agent completeTask {result['status']}: {result['message']}\n\n")
         if result['status'] in ['success', 'input_needed']:
             time.sleep(2)  # simulate delay
             chat(result['message'])

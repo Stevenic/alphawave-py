@@ -1,5 +1,6 @@
 import json
 import re
+
 class Response:
     @staticmethod
     def parse_all_objects(text):

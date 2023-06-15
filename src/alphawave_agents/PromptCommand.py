@@ -10,6 +10,11 @@ from alphawave.MemoryFork import MemoryFork
 from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand, CommandSchema as sbcCommandSchema
 from alphawave_agents.agentTypes import TaskResponse
 
+def update_dataclass(instance, **kwargs):
+    for key, value in kwargs.items():
+        if hasattr(instance, key):
+            setattr(instance, key, value)
+
 @dataclass
 class CommandSchema(sbcCommandSchema):
     schema_type: str
@@ -19,12 +24,6 @@ class CommandSchema(sbcCommandSchema):
     required: list[str] = field(default_factory=list)
     returns: str = None
 
-def update_dataclass(instance, **kwargs):
-    for key, value in kwargs.items():
-        if hasattr(instance, key):
-            setattr(instance, key, value)
-
-    
 @dataclass
 class PromptCommandOptions(AlphaWaveOptions):
     def __init__(self, prompt_options: PromptCompletionOptions, schema: CommandSchema, parseResponse: Callable[[str, Dict[str, Any], PromptMemory, PromptFunctions, Tokenizer], Any] = None):
@@ -48,16 +47,16 @@ class PromptCommand(SchemaBasedCommand):
             fork.set(key, value)
 
         # Create a wave and send it
-        #options = AlphaWaveOptions()
-        #update_dataclass(options, **self.options.__dict__)
-        #update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
-        wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=memory, functions=functions, tokenizer=tokenizer)
+        options = AlphaWaveOptions()
+        update_dataclass(options, **self.options.__dict__)
+        update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
+        wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=fork, functions=functions, tokenizer=tokenizer)
         response = await wave.completePrompt()
         # Process the response
         message = response['message']['content'] if isinstance(response['message'], dict) else response['message']
         if response['status'] == "success":
             # Return the response
-            parsed = await self.options.parseResponse(message, input, memory, functions, tokenizer) if self.options.parseResponse else message
+            parsed = await self.options.parseResponse(message, input, fork, functions, tokenizer) if self.options.parseResponse else message
             return Utilities.to_string(tokenizer, parsed)
         else:
             # Return the error

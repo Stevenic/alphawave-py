@@ -8,6 +8,7 @@ from promptrix.Prompt import Prompt
 from alphawave.alphawaveTypes import PromptCompletionOptions
 from alphawave.TestClient import TestClient
 import asyncio
+import json
 
 class TestClientTest(unittest.TestCase):
     def setUp(self):
