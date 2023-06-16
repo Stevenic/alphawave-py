@@ -2,6 +2,7 @@
 AlphaWave is a very opinionated client for interfacing with Large Language Models (LLM). It uses [Promptrix](https://github.com/Stevenic/promptrix) for prompt management and has the following features:
 
 - Supports calling OpenAI and Azure OpenAI hosted models out of the box but a simple plugin model lets you extend AlphaWave to support any LLM.
+- Supports OS LLMs through an OSClient. Currently assumes a server on port 5004, see details below.
 - Promptrix integration means that all prompts are universal and work with either Chat Completion or Text Completion API's.
 - Automatic history management. AlphaWave manages a prompts conversation history and all you have todo is tell it where to store it. It uses an in-memory store by default but a simple plugin interface (provided by Promptrix) lets you store short term memory, like conversation history, anywhere.
 - State-of-the-art response repair logic. AlphaWave lets you provide an optional "response validator" plugin which it will use to validate every response returned from an LLM. Should a response fail validation, AlphaWave will automatically try to get the model to correct its mistake. More below...
@@ -102,3 +103,50 @@ The  parameter to wave.completePrompt is optional and the wave can also take inp
 
 # Logging
 if you want to see the traffic with the server, the Client constructors (OSClient and OpenAIClient) take a logRequests parameter - False by default, set it to True to see prompts and responses on the console.
+
+# OSClient
+the 'default' way to use Alphawave-py with OpenAI is to use the OpenAI client as in line 49 of the example above. 
+If you want to use your own LLM, you can use instead:
+
+```python
+client = OSClient(apiKey=None)
+```
+
+The current OSClient assumes a server exists on localhost port 5004, using my own unique protocol.
+Not very useful, I know.
+Short term plans include: 
+1. allow specification of the host and port in the client constructor
+2. allow FastChat-like specification of the conversation template (user/assistant/etc). Support for this is already in the OSClient, just need to bring it out to the Constructor
+3. Implementation of a FastChat compatible api. Again, this was running in a dev version of the code, just need to re-insert it now that basic port is stable.
+
+## OSClient protocol
+### OSClient sends json to the server:
+```python
+        server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
+        smj = json.dumps(server_message)
+        client_socket.sendall(smj.encode('utf-8'))
+        client_socket.sendall(b'x00xff')
+```
+where prompt is a string containing the messages:
+```python
+{
+  "role": "system",
+  "content": "You are an AI assistant that is friendly, kind, and helpful"
+}{
+  "role": "user",
+  "content": "Hi. How are you today?"
+}
+```
+
+and the x00xff is the end of send message because I know nothing about sockets
+
+### OSClient expects to receive from the server:
+1. streaming or all at once, the text, followed by 'x00xff'
+2. that's it, no return code, no json wrapper, no {role: assistant, content: str), just the response.
+
+
+
+
+
+4. **the x00ff signals end of messages
+   
