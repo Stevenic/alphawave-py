@@ -29,7 +29,7 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
     def inputs(self) -> Optional[str]:
         if self._schema.properties:
             properties = self._schema.properties or {}
-            inputs = [f'"{key}":"<{property.get("description", property.get("type", "any"))} value>"' for key, property in properties.items()]
+            inputs = [f'"{key}":"<{property.get("description", property.get("type", "any"))}>"' for key, property in properties.items()]
             return ",".join(inputs)
         else:
             return None

@@ -81,7 +81,7 @@ class JSONResponseValidator(PromptResponseValidator):
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_json_feedback+f' using this template: {template}'
+                'feedback': self.missing_json_feedback#+f' using this template: {template}'
             }
 
         # Validate the response against the schema
@@ -108,14 +108,14 @@ class JSONResponseValidator(PromptResponseValidator):
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. respond using this template: {template}'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}'#. respond using this template: {template}'
                     }
                 except Exception as e:
                     template = extract_json_template(self.schema)
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. respond using this template: {template}'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}'#spond using this template: {template}'
                     }      
     
         else:

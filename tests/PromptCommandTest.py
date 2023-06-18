@@ -45,7 +45,7 @@ class TestPromptCommand(aiounittest.AsyncTestCase):
         command = PromptCommand(self.client, prompt=self.prompt, options=self.prompt_options)
         self.assertEqual(command.title, 'test')
         self.assertEqual(command.description, 'test description')
-        self.assertEqual(command.inputs, '"fact":"<a fact value>"')
+        self.assertEqual(command.inputs, '"fact":"<a fact>"')
         self.assertEqual(command.output, 'line of dialog')
 
     async def test_validate_valid_input(self):

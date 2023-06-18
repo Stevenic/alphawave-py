@@ -1,0 +1,6 @@
+requests
+selenium
+wordfreq
+tenacity
+openai
+nltk

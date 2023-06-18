@@ -104,7 +104,7 @@ class OpenAIClient(PromptCompletionClient):
             response = self.createChatCompletion(request)
             if self.options['logRequests']:
                 print(Colorize.title('CHAT RESPONSE:'))
-                print(Colorize.value('statuse', response.status_code))
+                print(Colorize.value('status', response.status_code))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
                 print(Colorize.output(response.json()))
 
@@ -152,6 +152,6 @@ class OpenAIClient(PromptCompletionClient):
         result = self._session.post(url, json=jsonbody, headers=requestHeaders)
         if result.status_code < 300:
             completion = result.json().get('choices')[0]
-
+        print(type(result))
         return result
         

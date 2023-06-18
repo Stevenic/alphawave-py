@@ -52,6 +52,7 @@ class PromptCommand(SchemaBasedCommand):
         update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=fork, functions=functions, tokenizer=tokenizer)
         response = await wave.completePrompt()
+        print(f'***** PromptCommand execute wave.completePrompt result {response}')
         # Process the response
         message = response['message']['content'] if isinstance(response['message'], dict) else response['message']
         if response['status'] == "success":

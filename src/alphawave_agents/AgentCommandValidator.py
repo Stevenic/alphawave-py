@@ -29,7 +29,7 @@ class AgentCommandValidator:
               return {
                   'type': 'Validation',
                   'valid': False,
-                  'feedback': 'The command '+thought['command']['name']+f' does not exist. The only commands you have are {self._commands.keys()}'
+                  'feedback': 'The command '+thought['command']['name']+f' does not exist. The only commands you have are {list(self._commands.keys())}'
               }
           
           # Validate that the command input is valid

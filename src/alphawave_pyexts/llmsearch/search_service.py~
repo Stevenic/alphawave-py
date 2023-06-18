@@ -1,0 +1,72 @@
+import requests
+import json
+import openai
+import sys
+import os
+import socket
+import time
+import string
+import webbrowser
+#from urllib.request import urlopen
+from datetime import date
+from datetime import datetime
+import traceback
+import random
+import readline as rl
+import concurrent.futures
+import alphawave_pyexts.llmsearch.google_search_concurrent as gs
+import alphawave_pyexts.utilityV2 as ut
+import tracemalloc
+import asyncio
+history = {}
+
+# stores urls used for last query, in case user asks to see them
+urls_all = []
+urls_used = ['','','','','','','','','','','','']
+urls_tried = ['','','','','','','','','','','','']
+url_text=""
+full_text = ''
+full_prompt = ''
+google_text = ''
+chat_interaction = False
+previous_query = None
+previous_response = None
+topic_name = 'general'
+se = ''
+be = ''
+gpt_response_text = ''
+query_pending = False
+# retrievals from memory
+gpt_message = ''
+gpt_main_query_message = ''
+query_phrase=''
+intent=''
+keywords=[]
+user_input_history = []
+
+async def run_chat(client, query_string, model,  memory, functions, tokenizer, search_level=gs.QUICK_SEARCH):
+  #tracemalloc.start()
+  response_text = ''
+  storeInteraction = True
+  try:
+    #
+    #### 
+    #
+    query_phrase, keywords = await ut.get_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer)
+
+    try:
+      google_text, urls_all, index, urls_used, tried_index, urls_tried = \
+        await gs.search_google(query_string, gs.QUICK_SEARCH, query_phrase, keywords, client, model, memory, functions, tokenizer)
+    except:
+      traceback.print_exc()
+    return google_text
+  except KeyboardInterrupt:
+    traceback.print_exc()
+    raise KeyboardInterrupt
+  except:
+    traceback.print_exc()
+  return ''
+
+if __name__ == '__main__' :
+  while True:
+    asyncio.run(run_chat(input('Yes?')))

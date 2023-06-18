@@ -10,8 +10,8 @@ from EndSceneCommand import EndSceneCommand
 from CharacterCommand import CharacterCommand
 
 # Create an OpenAI client
-client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
-#client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+#client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
+client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 
 initial_prompt = "\n".join([
     "Welcome to Macbeth, a tragedy by William Shakespeare.",
@@ -38,10 +38,10 @@ agent_options = AgentOptions(
     ],
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
-        model = 'gpt-3.5-turbo',
+        model = 'gpt-3.5-turbo-16k-0613',
         temperature = 0.0,
-        max_input_tokens = 2000,
-        max_tokens = 1000,
+        max_input_tokens = 1200,
+        max_tokens = 800,
     ),
     initial_thought={
         "thoughts": {
@@ -54,7 +54,7 @@ agent_options = AgentOptions(
             "input": {"question": initial_prompt}
         }
     },
-    step_delay=3000,
+    step_delay=5000,
     max_steps=50
 )
 
@@ -68,7 +68,6 @@ agent.addCommand(EndSceneCommand())
 # Define main characters
 characters = ['Macbeth', 'Lady Macbeth','Banquo', 'King Duncan', 'Macduff', 'First Witch', 'Second Witch', 'Third Witch', 'Malcolm', 'Fleance', 'Hecate', 'Donalbain', 'Lady Macduff', 'Captain']
 for name in characters:
-    print(f' adding {name}')
     agent.addCommand(CharacterCommand(client, 'gpt-3.5-turbo', name))
 
 # Define an additional 'extra' character to play minor roles

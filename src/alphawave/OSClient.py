@@ -12,15 +12,16 @@ from promptrix.AssistantMessage import AssistantMessage
 from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOptions, PromptResponse
 from alphawave.internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
 from alphawave.Colorize import Colorize
-import alphawave.utilityV2 as ut
-import alphawave.LLMClient as client
+import alphawave_pyexts.utilityV2 as ut
+import alphawave_pyexts.LLMClient as client
 
 @dataclass
 class OSClientOptions(PromptCompletionOptions):
-    def __init__(self, apiKey, organization = None, endpoint = None, logRequests = None):
+    def __init__(self, apiKey, organization = None, endpoint ='127.0.0.1', port=5004,logRequests = None):
         self.apiKey = apiKey
         self.organization = organization
         self.endpoint = endpoint
+        self.port = port
         self.logRequests = logRequests
 
 def update_dataclass(instance, **kwargs):
@@ -50,7 +51,7 @@ class OSClient(PromptCompletionClient):
     UserAgent = 'AlphaWave'
 
     def __init__(self, **kwargs):
-        self.options = OSClientOptions(apiKey=None, organization=None, endpoint= '127.0.0.1', logRequests=False)
+        self.options = OSClientOptions(apiKey=None, organization=None, endpoint= '127.0.0.1', port = 5004, logRequests=False)
         update_dataclass(self.options, **kwargs)
         if self.options.endpoint:
             self.options.endpoint = self.options.endpoint.strip()
@@ -87,7 +88,7 @@ class OSClient(PromptCompletionClient):
             response = self.createCompletion(request)
             if self.options.logRequests:
                 print(Colorize.title('RESPONSE:'))
-                print(Colorize.value('statuse', response.status))
+                print(Colorize.value('status', response.status))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
                 print(Colorize.output(response.message))
 
@@ -115,7 +116,7 @@ class OSClient(PromptCompletionClient):
                 print(Colorize.title('CHAT RESPONSE:'))
                 print(Colorize.value('status', response.status))
                 print(Colorize.value('duration', time.time() - startTime, 'ms'))
-                print(Colorize.output(response))
+                print(Colorize.output(response.message))
 
             if response.status == 'success':
                 completion = response.message
@@ -155,4 +156,4 @@ class OSClient(PromptCompletionClient):
                 result = result[:runon_idx]
         except Exception as e:
             return PromptResponse(status='error',message=str(e))
-        return PromptResponse(status='success', message = {'role':'assistant', 'content': result})
+        return PromptResponse(status='success', message=result)

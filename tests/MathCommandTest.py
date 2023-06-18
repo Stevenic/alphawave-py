@@ -15,13 +15,13 @@ class TestMathCommand(aiounittest.AsyncTestCase):
         command = MathCommand()
         self.assertEqual(command.title, 'math')
         self.assertEqual(command.description, 'execute some python code to calculate a value')
-        self.assertEqual(command.inputs, '"code":"<python expression to evaluate value>"')
+        self.assertEqual(command.inputs, '"code":"<python expression to evaluate>"')
         self.assertEqual(command.output, 'the calculated value')
 
         command = MathCommand('custom title', 'custom description')
         self.assertEqual(command.title, 'custom title')
         self.assertEqual(command.description, 'custom description')
-        self.assertEqual(command.inputs, '"code":"<python expression to evaluate value>"')
+        self.assertEqual(command.inputs, '"code":"<python expression to evaluate>"')
         self.assertEqual(command.output, 'the calculated value')
 
     async def test_validate(self):
