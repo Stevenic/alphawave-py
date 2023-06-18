@@ -1,4 +1,6 @@
 # AlphaWave
+New: SearchCommand will search the web. You will need a google api key.
+
 AlphaWave is a very opinionated client for interfacing with Large Language Models (LLM). It uses [Promptrix](https://github.com/Stevenic/promptrix) for prompt management and has the following features:
 
 - Supports calling OpenAI and Azure OpenAI hosted models out of the box but a simple plugin model lets you extend AlphaWave to support any LLM.
