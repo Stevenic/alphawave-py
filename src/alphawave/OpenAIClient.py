@@ -152,6 +152,5 @@ class OpenAIClient(PromptCompletionClient):
         result = self._session.post(url, json=jsonbody, headers=requestHeaders)
         if result.status_code < 300:
             completion = result.json().get('choices')[0]
-        print(type(result))
         return result
         

@@ -109,7 +109,6 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
                             print('timeout')
                             continue
                         if 'coroutine' in str(type(result)).lower():
-                            print(f'***** Google process_urls awaiting result')
                             result = await result
                         if len(result) > 0:
                             site = ut.extract_site(url)

@@ -2,9 +2,10 @@ from typing import Any, Dict, List
 from colorama import Fore, Style
 from dataclasses import dataclass, asdict
 import copy
+from promptrix.SystemMessage import SystemMessage
+from alphawave_agents.agentTypes import TaskResponse
 from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand
 from alphawave_agents.SchemaBasedCommand import CommandSchema as sbcCommandSchema
-from promptrix.SystemMessage import SystemMessage
 from alphawave_pyexts.llmsearch import search_service
 import json
 
@@ -34,22 +35,32 @@ search_schema = CommandSchema(
 
 
 class SearchCommand(SchemaBasedCommand):
-    def __init__(self, client, model, title=None, name=None, description=None):
+    def __init__(self, client, model, title=None, name=None, description=None, return_urls=False, max_chars=500):
         super().__init__(search_schema, title, description)
         self.client = client
         self.model = model
+        self.return_urls = return_urls
+        self.max_chars = max_chars
 
     async def execute(self, input: input, memory: Any, functions: Any, tokenizer: Any) -> Any:
         try:
-            print(f'***** SearchCommand input {input}')
             if type(input) == dict and 'query' in input:
                 query = input['query']
                 response =await search_service.run_chat(self.client, query, self.model, memory, functions, tokenizer)
+                sc_text = ''
+                sc_urls = []
                 if type(response) is list:
-                    print('Search Command result\n')
                     for item in response:
-                        print(json.dumps(item, indent=2))
-                return {'status':'success', 'message':response}
+                        if type(item) == dict and 'url' in item:
+                            sc_urls.append(item['url'])
+                        if type(item) == dict and 'text' in item:
+                            sc_text = '\n'+(item['text'])
+                    sc_text = sc_text[:max(len(sc_text)-1, self.max_chars)]
+                if self.return_urls:
+                    return {'status':'success', 'message':{'text': sc_text, 'urls':sc_urls}}
+                else:
+                    return {'status':'success', 'message':sc_text}
+                    
         except Exception as err:
             message = str(err)
             print(f'***** SearchCommand error {str(err)}')
