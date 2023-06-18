@@ -17,17 +17,19 @@ import alphawave_pyexts.LLMClient as client
 
 @dataclass
 class OSClientOptions(PromptCompletionOptions):
-    def __init__(self, apiKey, organization = None, endpoint ='127.0.0.1', port=5004,logRequests = None):
+    def __init__(self, apiKey, model='wizardLM', organization = None, endpoint ='127.0.0.1', port=5004,logRequests =False):
         self.apiKey = apiKey
         self.organization = organization
         self.endpoint = endpoint
         self.port = port
         self.logRequests = logRequests
-
+        self.model = model
+        
 def update_dataclass(instance, **kwargs):
     for key, value in kwargs.items():
         if hasattr(instance, key):
             setattr(instance, key, value)
+    return instance
 
 def get_values(instance, keys):
     values = []
@@ -38,7 +40,13 @@ def get_values(instance, keys):
             values.append(None)
     return values
 
-        
+def display_options(options):
+    options_dict = options.__dict__
+    print()
+    for item in options_dict.keys():
+        print(item, options_dict[item])
+    print()
+    
 @dataclass
 class Response:
     status_code: int
@@ -63,11 +71,21 @@ class OSClient(PromptCompletionClient):
     async def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         if isinstance(options, dict):
             argoptions = options
-            options = PromptCompletionOptions(completion_type = argoptions['completion_type'], model = argoptions['model'])
+            options = PromptCompletionOptions(completion_type = argoptions['completion_type'],
+                                              model = argoptions['model'],
+                                              max_input_tokens = argoptions['max_input_tokens'],
+                                              temperature = argoptions['temperature'],
+                                              top_p = argoptions['top_p'],
+                                              max_tokens = argoptions['max_tokens'],
+                                              stop = argoptions['stop'],
+                                              presence_penalty = argoptions['presence_penalty'],
+                                              frequency_penalty = argoptions['frequency_penalty']
+                                              )
         startTime = time.time()
-        max_input_tokens = 2048
+        max_input_tokens = 1500
         if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
             max_input_tokens = options.max_input_tokens
+        
         if hasattr(options, 'completion_type') and options.completion_type == 'text':
             result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
         if hasattr(options, 'completion_type') and options.completion_type == 'text':
@@ -101,7 +119,6 @@ class OSClient(PromptCompletionClient):
             result = await prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
             if result.tooLong:
                 return {'status': 'too_long', 'message': f"The generated chat completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
-            self.options.logRequests = True
             if self.options.logRequests:
                 print(Colorize.title('CHAT PROMPT:'))
                 for msg in result.output:
@@ -111,7 +128,6 @@ class OSClient(PromptCompletionClient):
                 print()
             request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
             response = self.createChatCompletion(request)
-            self.options.logRequests = True
             if self.options.logRequests:
                 print(Colorize.title('CHAT RESPONSE:'))
                 print(Colorize.value('status', response.status))
@@ -150,10 +166,14 @@ class OSClient(PromptCompletionClient):
         }
         result = ''
         try:
-            result = ut.ask_LLM(ut.MODEL, body.messages)
-            runon_idx = result.find(client.USER)
-            if runon_idx > 0:
-                result = result[:runon_idx]
+            result = ut.ask_LLM(self.options.model,
+                                body.messages,
+                                self.options.max_tokens,
+                                self.options.temperature,
+                                self.options.top_p,
+                                self.options.endpoint,
+                                self.options.port
+                                )
         except Exception as e:
             return PromptResponse(status='error',message=str(e))
         return PromptResponse(status='success', message=result)

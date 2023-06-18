@@ -7,10 +7,15 @@ from alphawave.OSClient import OSClient
 from alphawave_agents.Agent import Agent, AgentOptions
 from alphawave_pyexts.SearchCommand import SearchCommand
 from alphawave_agents.AskCommand import AskCommand
+from alphawave_agents.FinalAnswerCommand import FinalAnswerCommand
 
 # Create an OpenAI client
 client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+model = 'gpt-3.5-turbo',
+
+#create OS client
 #client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+#model = 'wizardLM'
 
 initial_prompt = \
 """
@@ -24,8 +29,8 @@ agent_options = AgentOptions(
     ],
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
-        model = 'gpt-3.5-turbo-0613',
-        temperature = 0.0,
+        model = model,
+        temperature = 0.5,
         max_input_tokens = 1200,
         max_tokens = 800,
     ),
@@ -33,7 +38,7 @@ agent_options = AgentOptions(
         "thoughts": {
             "thought": "I want the user to know I want to help.",
             "reasoning": "",
-            "plan": "- ask the user what he would like me to figure out - use the ask and search commands to facilitate the dialog"
+            "plan": "- use the ask command to ask the user what he would like me to figure out"
         },
         "command": {
             "name": "ask",
@@ -49,7 +54,8 @@ agent = Agent(options = agent_options)
 
 # Add core commands to the agent
 agent.addCommand(AskCommand())
-agent.addCommand(SearchCommand(client, 'gpt-3.5-turbo-0613'))
+agent.addCommand(SearchCommand(client, model))
+agent.addCommand(FinalAnswerCommand())
 
 
 # Listen for new thoughts

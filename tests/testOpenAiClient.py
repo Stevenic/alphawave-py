@@ -103,7 +103,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(input).is_equal_to('Hi')
         self.memory.clear()
         self.memory.set('history', [])
-    """
+
 
     async def test_prompt_completion_with_validation(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
@@ -263,6 +263,6 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         assert_that(str(history).startswith("[{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': {"))
         self.memory.clear()
         self.memory.set('history', [])
-    """
+
 if __name__ == '__main__':
     unittest.main()

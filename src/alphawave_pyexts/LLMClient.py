@@ -9,12 +9,47 @@ import tkinter as tk
 import time
 
 MODEL_NAME = None; WORKER_ADDR=None; CONTROLLER_ADDRESS = "http://localhost:21001"
-USER = '\n### HUMAN:\n'
-ASSISTANT = '\n### ASSISTANT:\n'
 
 host='192.168.1.195'
 port = 5004
-def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None): 
+cv.register_conv_template(Conversation(
+        name="wizard",
+        system="",
+        roles=("HUMAN", "ASSISTANT"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep=" ",
+        sep2="</s>",
+    )
+)
+cv.register_conv_template(Conversation(
+        name="wizardLM",
+        system="",
+        roles=("### HUMAN", "### ASSISTANT"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep=" ",
+        sep2="</s>",
+    )
+)
+
+def run_query(model, messages, temp, top_p, max_tokens, host = host, port = port, tkroot = None, tkdisplay=None): 
+    conv=cv.get_conv_template(model)
+    # set this so client can check for run-on, although this test should pbly be here!
+    for msg in messages:
+        #print(f'  {msg}')
+        role = msg['role']
+        if role.lower() == 'user':
+            role_index = 0
+        else:
+            role_index = 1
+        conv.append_message(conv.roles[role_index], msg['content'])
+    conv.append_message(conv.roles[1], '')
+    prompt = conv.get_prompt()
+    server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
+    """
     prompt = ''
     for msg in messages:
         if not isinstance(msg, dict):
@@ -27,6 +62,7 @@ def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None):
         else: print(f'***** unknown role {role}')
         prompt += role_os + str(msg['content'])
     prompt += ASSISTANT
+    """
     server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
     smj = json.dumps(server_message)
     try:
@@ -62,6 +98,10 @@ def run_query(messages, temp, top_p, max_tokens, tkroot = None, tkdisplay=None):
                         tkroot.update()
                 response += s
         client_socket.close()  # close the connection
+        #check for run on hallucination in response 
+        runon_idx = response.find(conv.roles[0])
+        if runon_idx > 0:
+            response = response[:runon_idx]
         return response
     except: 
         traceback.print_exc()

@@ -305,7 +305,6 @@ class Agent(SchemaBasedCommand):
                 validator = AgentCommandValidator(self._commands)
 
                 # Create a wave for the prompt
-                #wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=memory, functions=functions, tokenizer=tokenizer)
                 wave = AlphaWave(
                     client = self._options['client'],
                     prompt = prompt,

@@ -38,32 +38,13 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 google_key = os.getenv("GOOGLE_KEY")
 google_cx = os.getenv("GOOGLE_CX")
 GOOGLE = 'google'
-USER = 'user'
-ASSISTANT = 'assistant'
-MODEL = 'wizardLM'
-GPT_35 = 'gpt-3.5-turbo'
-GPT_4 = 'gpt-4'
-FC_T5 = 'fs-t5-3b-v1.0'
-VICUNA_7B = 'vicuna-7b'
-VICUNA_13B = 'vicuna-13b'
-WIZARD_13B = 'wizard-13b'
-WIZARD_30B = 'wizard-30b'
-GUANACO_33B = 'guanaco-33b'
-MODEL = WIZARD_30B
-#MODEL = GPT_35
-#MODEL = GPT_4
-#MODEL = GUANACO_33B
 
-#if not MODEL.startswith('gpt') and MODEL != WIZARD_30B and MODEL != GUANACO_33B:
-#  # this for connecting to fastchat server
-#  client.initialize(MODEL)
-
-def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, tkroot = None, tkdisplay=None):
+def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None, port = None, tkroot = None, tkdisplay=None):
     completion = None
     response = ''
     try:
       if not model.lower().startswith('gpt'):
-        completion = client.run_query(gpt_message, temp,top_p,max_tokens = max_tokens )
+        completion = client.run_query(model, gpt_message, temp, top_p, max_tokens, host, port )
         if completion is not None:
           response = completion
 
@@ -143,7 +124,7 @@ async def run_wave (client, input, prompt, prompt_options, memory, functions, to
 
 async def get_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer):
 
-    prompt = Prompt([UserMessage('Text:\n\n{{$input}}\n\n. Analyze the above Text, using this this JSON template:\n\n{"Phrase": <rewrite of Text as an effective google search phrase>, "Keywords": [keywords in Text],"NamedEntities": [NamedEntities in text]}')])
+    prompt = Prompt([UserMessage('Text:\n\n{{$input}}\n\n. Analyze the above Text. Respond using this JSON template:\n\n{"Phrase": <rewrite of Text as an effective google search phrase>, "Keywords": [keywords in Text],"NamedEntities": [NamedEntities in text]}')])
     response_text=''
     completion = None
     schema = {
@@ -173,9 +154,10 @@ async def get_search_phrase_and_keywords(client, query_string, model, memory, fu
 
     if type(response) == dict and 'status' in response and response['status'] == 'success':
         content = response['message']['content']
-        phrase = content['Phrase']
-        keywords = content['Keywords']
-        return phrase, keywords
+        if type(content) == dict:
+            phrase = content['Phrase']
+            keywords = content['Keywords']
+            return phrase, keywords
     else:
         return response, []
 
