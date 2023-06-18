@@ -1,4 +1,6 @@
 # AlphaWave
+minor bug fixes, OS Client now correctly handles host, port, temperature, top_p, max_tokens
+
 New: SearchCommand will search the web. You will need a google api key.
 See tests/SearchCommandAgentTest.py
 
