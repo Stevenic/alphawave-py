@@ -1,5 +1,6 @@
 # AlphaWave
 New: SearchCommand will search the web. You will need a google api key.
+See tests/SearchCommandAgentTest.py
 
 AlphaWave is a very opinionated client for interfacing with Large Language Models (LLM). It uses [Promptrix](https://github.com/Stevenic/promptrix) for prompt management and has the following features:
 
