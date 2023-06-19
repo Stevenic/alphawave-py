@@ -1,12 +1,16 @@
 from pyee import AsyncIOEventEmitter
 from typing import Dict, Any, Union
-from alphawave_agents.agentTypes import Command, AgentThought, AgentThoughtSchema
+from alphawave_agents.agentTypes import Command, AgentThought, AgentThoughtSchema, AgentThoughtSchema_py
 from alphawave.JSONResponseValidator import JSONResponseValidator
 import traceback
 
 class AgentCommandValidator:
-    def __init__(self, commands: dict[str, Command]):
-        self._thought_validator = JSONResponseValidator(AgentThoughtSchema, 'No valid JSON objects were found in the response. Return a valid JSON object with your thoughts and the next command to perform.')
+    def __init__(self, commands: dict[str, Command], model: str):
+        if model.lower().startswith('gpt'):
+            self._thought_validator = JSONResponseValidator(AgentThoughtSchema, 'No valid JSON objects were found in the response. Return a valid JSON object with your thoughts and the next command to perform.')
+        else:
+            self._thought_validator = JSONResponseValidator(AgentThoughtSchema_py, 'No valid JSON objects were found in the response. Return a valid JSON object with your thoughts and the next command to perform.')
+
         self._commands = commands
 
     async def validate_response(self, memory, functions, tokenizer, response, remaining_attempts) -> Union[AgentThought, None]:

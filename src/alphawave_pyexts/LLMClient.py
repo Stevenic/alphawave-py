@@ -9,11 +9,35 @@ import tkinter as tk
 import time
 
 MODEL_NAME = None; WORKER_ADDR=None; CONTROLLER_ADDRESS = "http://localhost:21001"
+USER_PREFIX = ''
+ASSISTANT_PREFIX = ''
 
 host='192.168.1.195'
 port = 5004
 cv.register_conv_template(Conversation(
-        name="wizard",
+        name="falcon_instruct",
+        system="",
+        roles=("HUMAN", "ASSISTANT"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep=" ",
+        sep2="</s>",
+    )
+)
+cv.register_conv_template(Conversation(
+        name="falcon_instruct2",
+        system="",
+        roles=(" ###HUMAN", " ###ASSISTANT"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep=" ",
+        sep2="</s>",
+    )
+)
+cv.register_conv_template(Conversation(
+        name="falcon_instruct3",
         system="",
         roles=("HUMAN", "ASSISTANT"),
         messages=(),
@@ -36,7 +60,10 @@ cv.register_conv_template(Conversation(
 )
 
 def run_query(model, messages, temp, top_p, max_tokens, host = host, port = port, tkroot = None, tkdisplay=None): 
+    global USER_PREFIX, ASSISTANT_PREFIX
     conv=cv.get_conv_template(model)
+    USER_PREFIX = conv.roles[0]
+    ASSISTANT_PREFIX = conv.roles[1]
     # set this so client can check for run-on, although this test should pbly be here!
     for msg in messages:
         #print(f'  {msg}')

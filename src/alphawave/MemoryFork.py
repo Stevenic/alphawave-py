@@ -1,23 +1,38 @@
-class MemoryFork:
+from promptrix.promptrixTypes import PromptMemory
+from promptrix.VolatileMemory import VolatileMemory
+
+class MemoryFork(PromptMemory):
     def __init__(self, memory):
-        self._fork = dict()
+        self._fork = VolatileMemory()
         self._memory = memory
 
     def has(self, key):
-        return key in self._fork or self._memory.has(key)
+        return self._fork.has(key) or self._memory.has(key)
 
     def get(self, key):
-        if key in self._fork:
-            return self._fork[key]
+        if self._fork.has(key):
+            value = self._fork.get(key)
+            if value is not None and isinstance(value, dict):
+                return json.loads(json.dumps(value))
+            else:
+                return value
         else:
-            return self._memory.get(key)
+            value = self._memory.get(key)
+            if value is not None and isinstance(value, dict):
+                return json.loads(json.dumps(value))
+            else:
+                return value
 
     def set(self, key, value):
-        self._fork[key] = value
+        if value is not None and isinstance(value, dict):
+            clone = json.loads(json.dumps(value))
+            self._fork.set(key, clone)
+        else:
+            self._fork.set(key, value)
 
     def delete(self, key):
-        if key in self._fork:
-            self._fork.pop(key, None)
+        if self._fork.has(key):
+            self._fork.delete(key)
 
     def clear(self):
         self._fork.clear()

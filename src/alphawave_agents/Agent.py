@@ -49,6 +49,16 @@ PromptInstructionSection = TemplateSection("\n".join([
     '{"thoughts":{"thought":"<your current thought>","reasoning":"<self reflect on why you made this decision>","plan":"- short bulleted\n- list that conveys\n- long-term plan"},"command":{"name":"<command name>","input":{"<name>":"<value>"}}}'
 ]), 'system')
 
+PromptInstructionSection_py = TemplateSection(\
+"""
+Reason step by step how to answer the users query below.
+Return a JSON object with your thoughts and the next command to perform, using the following format and available commands.
+Response Format:
+
+{\"reasoning\":\"<reflections on how to construct an answerto the user query>\",\"plan\":\"concise plan for constructing answer\",\"command\":{\"name\":\"<command name of next action to perform>\",\"input\":{\"<key>\":\"<value>\"}}</s>"
+"""
+                                              , 'system')
+
 @dataclass
 class AgentOptions:
     client: PromptCompletionClient
@@ -271,15 +281,14 @@ class Agent(SchemaBasedCommand):
             history_variable = self.get_agent_history_variable(agent_id)
             sections = [agent_prompt]
             sections.append(AgentCommandSection(self._commands))
-            sections.append(PromptInstructionSection)
+            pis = PromptInstructionSection
+            if not (self._options['prompt_options']['model']).lower().startswith('gpt'):
+                pis = PromptInstructionSection_py
+            sections.append(pis)
             prompt = Prompt([
                 GroupSection(sections, 'system'),
                 ConversationHistory(history_variable, 1.0, True)
             ])
-            #prompt = Prompt([
-            #    agent_prompt, AgentCommandSection(self._commands), PromptInstructionSection,
-            #    ConversationHistory(history_variable, 1.0, True)
-            #])
             if input:
                 prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user'))
                 # Ensure input variable is set otherwise the history will be wrong.
@@ -302,7 +311,7 @@ class Agent(SchemaBasedCommand):
                     self.memory.set(history_variable, history)
 
                 # Create command validator
-                validator = AgentCommandValidator(self._commands)
+                validator = AgentCommandValidator(self._commands, self._options['prompt_options']['model'])
 
                 # Create a wave for the prompt
                 wave = AlphaWave(

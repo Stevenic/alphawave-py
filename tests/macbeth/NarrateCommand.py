@@ -27,7 +27,7 @@ schema = CommandSchema(
     properties = {
         'text': {
             'type': 'string',
-            'description': 'narration'
+            'description': 'narration text'
         },
         'performance': {
             'type': 'string',

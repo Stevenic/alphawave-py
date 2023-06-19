@@ -61,9 +61,9 @@ class AlphaWave(AsyncIOEventEmitter):
         self.options = AlphaWaveOptions(
         )
         update_dataclass(self.options, **kwargs)
-
+        #display_dataclass(self.options)
     async def completePrompt(self, input=None):
-        client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'log_repairs'))
+        client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, logRepairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'logRepairs'))
 
         if self.options.input_variable:
             if input:
@@ -129,21 +129,19 @@ class AlphaWave(AsyncIOEventEmitter):
             }
 
     def addInputToHistory(self, memory, variable, input):
-        #print(f'***** Alphawave addInputToHistory {variable}')
         if variable and input is not None and len(input) > 0:
             history = memory.get(variable) or []
             history.append({'role': 'user', 'content': input})
             if len(history) > self.options.max_history_messages:
-                history = history[self.options.max_history_messages:]
+                history = history[int(self.options.max_history_messages/2):]
             memory.set(variable, history)
 
     def addResponseToHistory(self, memory, variable, message):
-        #print(f'***** Alphawave addResponseToHistory {variable}')
         if variable:
             history = memory.get(variable) or []
             history.append(message)
             if len(history) > self.options.max_history_messages:
-                history = history[self.options.max_history_messages:]
+                history = history[int(self.options.max_history_messages/2):]
             memory.set(variable, history)
 
     async def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):

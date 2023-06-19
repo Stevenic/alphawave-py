@@ -78,10 +78,11 @@ class JSONResponseValidator(PromptResponseValidator):
             raise e
         if len(parsed) == 0:
             template = extract_json_template(self.schema)
+            #print(f'***** JSONResponseValidator failure len(parsed) == 0')
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_json_feedback#+f' using this template: {template}'
+                'feedback': self.missing_json_feedback+f' using this template: {template} '
             }
 
         # Validate the response against the schema
@@ -95,6 +96,7 @@ class JSONResponseValidator(PromptResponseValidator):
                     except Exception as e:
                         pass
                     validate(obj, self.schema)
+                    #print(f'***** JSONResponseValidator validation passed!')
                     return {
                         'type': 'Validation',
                         'valid': True,
@@ -105,21 +107,24 @@ class JSONResponseValidator(PromptResponseValidator):
                     if not errors:
                         errors = e
                     template = extract_json_template(self.schema)
+                    #print(f'***** JSONResponseValidator ValidationError exception {str(e)}')
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}'#. respond using this template: {template}'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. respond using this template: {template} '
                     }
                 except Exception as e:
                     template = extract_json_template(self.schema)
+                    #print(f'***** JSONResponseValidator validator generic exception {str(e)}')
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}'#spond using this template: {template}'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. respond using this template: {template} '
                     }      
     
         else:
             # Return the last object
+            #print(f'***** JSONResponseValidator exit last object {parsed[-1]}')
             return {
                 'type': 'Validation',
                 'valid': True,

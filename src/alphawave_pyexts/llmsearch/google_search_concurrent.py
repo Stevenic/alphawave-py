@@ -47,7 +47,7 @@ priming_2 = {"role": "user", "content":"List relevant information in the provide
 
 
 # Define a function to make a single URL request and process the response
-async def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer):
+async def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars):
     start_time = time.time()
     site = ut.extract_site(url)
     result = ''
@@ -65,7 +65,7 @@ async def process_url(query_phrase, keywords, keyword_weights, url, timeout, cli
                     dr.get(url)
                     response = dr.page_source
                     result =  await response_text_extract(query_phrase, keywords, keyword_weights, url, response, int(time.time()-start_time),
-                                                          client, model, memory, functions, tokenizer)
+                                                          client, model, memory, functions, tokenizer, max_chars)
                 except selenium.common.exceptions.TimeoutException:
                     return '', url
     except Exception:
@@ -75,7 +75,7 @@ async def process_url(query_phrase, keywords, keyword_weights, url, timeout, cli
     #print(f"Processed {site}: {len(response)} / {len(result)} {int((time.time()-start_time)*1000)} ms")
     return result, url
 
-async def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, client, model, memory, functions, tokenizer):
+async def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, client, model, memory, functions, tokenizer, max_chars):
     response = []
     start_time = time.time()
     full_text = ''
@@ -88,16 +88,16 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
             try:
                 while (len(urls) > 0
                        # no sense starting if not much time left
-                       and ((search_level==DEEP_SEARCH and len(full_text) < 9600 and len(in_process) < 8 and time.time() - start_time < 14)
-                            or (search_level==NORMAL_SEARCH and len(full_text) < 6400 and len(in_process) < 7 and time.time()-start_time < 12)
-                            or (search_level==QUICK_SEARCH  and len(full_text) < 4800 and len(in_process) < 6 and time.time()-start_time < 8))):
+                       and ((search_level==DEEP_SEARCH and len(full_text) < 9600 and len(in_process) < 8 and time.time() - start_time < 42)
+                            or (search_level==NORMAL_SEARCH and len(full_text) < 6400 and len(in_process) < 7 and time.time()-start_time < 36)
+                            or (search_level==QUICK_SEARCH  and len(full_text) < 4800 and len(in_process) < 6 and time.time()-start_time < 24))):
                     url = urls[0]
                     urls = urls[1:]
                     # set timeout so we don't wait for a slow site forever
                     timeout = 12-int(time.time()-start_time)
                     if search_level==NORMAL_SEARCH:
                         timeout = timeout+4
-                    future = executor.submit(process_url, query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer)
+                    future = executor.submit(process_url, query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars)
                     in_process.append(future)
                 # Process the responses as they arrive
                 for future in in_process:
@@ -117,11 +117,11 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
 
                 # openai seems to timeout a plugin  at about 30 secs, and there is pbly 3-4 sec overhead
                 if ((len(urls) == 0 and len(in_process) == 0)
-                    or (search_level==DEEP_SEARCH and (len(full_text) > 9600) or time.time() - start_time > 42)
+                    or (search_level==DEEP_SEARCH and (len(full_text) > max_chars) or time.time() - start_time > 48)
                     or (search_level==NORMAL_SEARCH and
-                        (len(full_text) > 2400) or time.time()-start_time > 32)
+                        (len(full_text) > max_chars) or time.time()-start_time > 32)
                     or (search_level==QUICK_SEARCH  and
-                        (len(full_text) > 2400) or time.time()-start_time > 28)
+                        (len(full_text) > max_chars) or time.time()-start_time > 24)
                     ):
                     executor.shutdown(wait=False)
                     return response
@@ -163,7 +163,11 @@ def search(query_phrase):
     sort = '&sort=date-sdate:d:w'
     if 'today' in query_phrase or 'latest' in query_phrase:
         sort = '&sort=date-sdate:d:s'
-    google_query=en.quote(query_phrase)
+    try:
+        google_query=en.quote(query_phrase)
+    except:
+        print(f'googleSearch pblm w query_phrase, ignoring {query_phrase}')
+        return []
     response=[]
     try:
         start_wall_time = time.time()
@@ -189,9 +193,9 @@ def log_url_process(site, reason, raw_text, extract_text, gpt_text):
     return
 
 
-async def llm_tldr (text, query, client, model, memory, functions, tokenizer):
-    text = text[:4000] # make sure we don't run over token limit
-    prompt = Prompt([UserMessage('Analyze the following Text to identify if there is any content relevant to the query {{$query}}, Respond using this JSON template:\n\n{"relevant": True if there is any text found in the input that is relevant to the query, False otherwise>, "tldr": <relevant extract from Text, or "">}\n\nText:\n\n{{$input}}\n\n. ')])
+async def llm_tldr (text, query, client, model, memory, functions, tokenizer, max_chars):
+    text = text[:max_chars] # make sure we don't run over token limit
+    prompt = Prompt([UserMessage('Analyze the following Text to identify if there is any content relevant to the query {{$query}}, Respond using this JSON template:\n\n{"relevant": True if there is any text found in the input that is relevant to the query, False otherwise>, "tldr": <relevant content found in Text, rewritten as needed for coherence, or "" if nothing found>}\n\nText:\n\n{{$input}}\n\n. ')])
     response_text=''
     completion = None
     schema = {
@@ -213,7 +217,9 @@ async def llm_tldr (text, query, client, model, memory, functions, tokenizer):
     }
     
     options = PromptCompletionOptions(completion_type='chat', model=model)
-    response = await ut.run_wave(client, {'input':text, 'query':query}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
+    # don't clutter primary memory with tldr stuff
+    fork = MemoryFork(memory)
+    response = await ut.run_wave(client, {'input':text, 'query':query}, prompt, options, fork, functions, tokenizer, validator=JSONResponseValidator(schema))
     if type(response) == dict and 'status' in response and response['status'] == 'success'and 'message' in response:
         message = response['message']
         if type(message) == dict and 'content' in message and type(message['content']) == dict:
@@ -223,7 +229,7 @@ async def llm_tldr (text, query, client, model, memory, functions, tokenizer):
     return ''
     
 
-async def response_text_extract(query_phrase, keywords, keyword_weights, url, response, get_time, client, model, memory, functions, tokenizer):
+async def response_text_extract(query_phrase, keywords, keyword_weights, url, response, get_time, client, model, memory, functions, tokenizer, max_chars):
     curr=time.time()
     extract_text = ''
     site = ut.extract_site(url)
@@ -241,7 +247,7 @@ async def response_text_extract(query_phrase, keywords, keyword_weights, url, re
 
     # now ask openai to extract answer
     response = ''
-    response = await llm_tldr(extract_text, query_phrase, client, model, memory, functions, tokenizer)
+    response = await llm_tldr(extract_text, query_phrase, client, model, memory, functions, tokenizer, max_chars)
     return response
 
 def extract_items_from_numbered_list(text):
@@ -256,7 +262,7 @@ def extract_items_from_numbered_list(text):
             items += candidate+' '
     return items
 
-async def search_google(original_query, search_level, query_phrase, keywords, client, model, memory, functions, tokenizer):
+async def search_google(original_query, search_level, query_phrase, keywords, client, model, memory, functions, tokenizer, max_chars):
   start_time = time.time()
   all_urls=[]; urls_used=[]; urls_tried=[]
   index = 0; tried_index = 0
@@ -300,7 +306,7 @@ async def search_google(original_query, search_level, query_phrase, keywords, cl
     urls = [val for tup in zip_longest(orig_phrase_urls, gpt_phrase_urls) for val in tup if val is not None]
     all_urls = copy.deepcopy(urls)
     full_text = \
-        await process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer)
+        await process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars)
   except:
       traceback.print_exc()
   return  full_text

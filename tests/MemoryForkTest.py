@@ -14,7 +14,8 @@ class TestMemoryFork(unittest.TestCase):
     def test_constructor(self):
         fork = MemoryFork(self.memory)
         self.assertIsNotNone(fork)
-
+        self.assertFalse(fork ==self.memory)
+        
     def test_has(self):
         fork = MemoryFork(self.memory)
         fork.set("output", "I can help with that")
@@ -22,7 +23,8 @@ class TestMemoryFork(unittest.TestCase):
         self.assertTrue(fork.has('output'))
         self.assertTrue(fork.has('name'))
         self.assertFalse(fork.has('age'))
-
+        self.assertFalse(self.memory.has('output'))
+        
     def test_get(self):
         fork = MemoryFork(self.memory)
 

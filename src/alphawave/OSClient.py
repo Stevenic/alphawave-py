@@ -88,8 +88,6 @@ class OSClient(PromptCompletionClient):
         
         if hasattr(options, 'completion_type') and options.completion_type == 'text':
             result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
-        if hasattr(options, 'completion_type') and options.completion_type == 'text':
-            result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
             if result.tooLong:
                 return {'status': 'too_long', 'message': f"The generated text completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
             if self.options.logRequests:
@@ -159,18 +157,18 @@ class OSClient(PromptCompletionClient):
         url = f"{self.options.endpoint or self.DefaultEndpoint}/v1/chat/completions"
         return self.post(url, request)
 
-    def post(self, url: str, body: object) -> requests.Response:
+    def post(self, url: str, request: object) -> requests.Response:
         requestHeaders = {
             'Content-Type': 'application/json',
             'User-Agent': self.UserAgent
         }
         result = ''
         try:
-            result = ut.ask_LLM(self.options.model,
-                                body.messages,
-                                self.options.max_tokens,
-                                self.options.temperature,
-                                self.options.top_p,
+            result = ut.ask_LLM(request.model,
+                                request.messages,
+                                request.max_tokens,
+                                request.temperature,
+                                request.top_p,
                                 self.options.endpoint,
                                 self.options.port
                                 )

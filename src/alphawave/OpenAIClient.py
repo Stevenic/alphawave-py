@@ -116,6 +116,11 @@ class OpenAIClient(PromptCompletionClient):
                     print(Colorize.title('HEADERS:'))
                     print(Colorize.output(response.headers))
                 return {'status': 'rate_limited', 'message': 'The chat completion API returned a rate limit error.'}
+            elif response.status_code == 503:
+                if self.options['logRequests']:
+                    print(Colorize.title('HEADERS:'))
+                    print(Colorize.output(response.headers))
+                return {'status': 'server unavailable', 'message': 'The chat completion API returned server unavailable or overloaded.'}
             else:
                 return {'status': 'error', 'message': f"The chat completion API returned an error status of {response.status_code}: {response.reason}"}
 

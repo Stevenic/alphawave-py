@@ -10,8 +10,10 @@ from EndSceneCommand import EndSceneCommand
 from CharacterCommand import CharacterCommand
 
 # Create an OpenAI client
-#client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
-client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+model = 'gpt-3.5-turbo'
+#client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+#model = 'wizardLM'
 
 initial_prompt = "\n".join([
     "Welcome to Macbeth, a tragedy by William Shakespeare.",
@@ -38,24 +40,22 @@ agent_options = AgentOptions(
     ],
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
-        model = 'gpt-3.5-turbo-16k-0613',
-        temperature = 0.0,
+        model = model,
+        temperature = 0.01,
         max_input_tokens = 1200,
         max_tokens = 800,
     ),
     initial_thought={
-        "thoughts": {
-            "thought": "I want to give the user some options to choose from to start the story.",
-            "reasoning": "This will make the experience more interactive and personalized, and also help me set the scene accordingly.",
-            "plan": "- ask the user where to start the story from\n- use the narrate command to introduce the chosen scene. The introduction should be provided in a 'text' field in the JSON response\n- use the character commands to facilitate the dialog"
-        },
+        "reasoning": "This will make the experience more interactive and personalized, and also help me set the scene accordingly.",
+        "plan": "- ask the user where to start the story from\n- use the narrate command to introduce the chosen scene. The introduction should be provided in a 'text' field in the JSON response\n- use the character commands to facilitate the dialog",
         "command": {
             "name": "ask",
             "input": {"question": initial_prompt}
         }
     },
     step_delay=5000,
-    max_steps=50
+    max_steps=50,
+    logRepairs=True
 )
 
 # Create an agent
@@ -68,10 +68,10 @@ agent.addCommand(EndSceneCommand())
 # Define main characters
 characters = ['Macbeth', 'Lady Macbeth','Banquo', 'King Duncan', 'Macduff', 'First Witch', 'Second Witch', 'Third Witch', 'Malcolm', 'Fleance', 'Hecate', 'Donalbain', 'Lady Macduff', 'Captain']
 for name in characters:
-    agent.addCommand(CharacterCommand(client, 'gpt-3.5-turbo', name))
+    agent.addCommand(CharacterCommand(client, 'wizardLM', name))
 
 # Define an additional 'extra' character to play minor roles
-agent.addCommand(CharacterCommand(client, 'gpt-3.5-turbo', 'extra', 'use for minor characters or any missing commands'))
+agent.addCommand(CharacterCommand(client, 'wizardLM', 'extra', 'use for minor characters or any missing commands'))
 
 # Listen for new thoughts
 #agent.events.on('newThought', lambda thought: print(f"[{thought['thoughts']['thought']}]"))
