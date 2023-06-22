@@ -3,6 +3,7 @@ import json
 import traceback
 import socket
 import requests
+import re
 from alphawave_pyexts.conversation import Conversation, SeparatorStyle
 import alphawave_pyexts.conversation as cv
 import tkinter as tk
@@ -17,22 +18,22 @@ port = 5004
 cv.register_conv_template(Conversation(
         name="falcon_instruct",
         system="",
-        roles=("HUMAN", "ASSISTANT"),
+        roles=("User", "Assistant"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep=" ",
-        sep2="</s>",
+        sep="\n",
+        sep2="\nAssistant:\n",
     )
 )
 cv.register_conv_template(Conversation(
         name="falcon_instruct2",
         system="",
-        roles=(" ###HUMAN", " ###ASSISTANT"),
+        roles=("User", "Assistant"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep=" ",
+        sep="\n",
         sep2="</s>",
     )
 )
@@ -59,38 +60,27 @@ cv.register_conv_template(Conversation(
     )
 )
 
-def run_query(model, messages, temp, top_p, max_tokens, host = host, port = port, tkroot = None, tkdisplay=None): 
+def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, tkroot = None, tkdisplay=None, format=True): 
     global USER_PREFIX, ASSISTANT_PREFIX
     conv=cv.get_conv_template(model)
     USER_PREFIX = conv.roles[0]
     ASSISTANT_PREFIX = conv.roles[1]
-    # set this so client can check for run-on, although this test should pbly be here!
-    for msg in messages:
-        #print(f'  {msg}')
-        role = msg['role']
-        if role.lower() == 'user':
-            role_index = 0
-        else:
-            role_index = 1
-        conv.append_message(conv.roles[role_index], msg['content'])
-    conv.append_message(conv.roles[1], '')
-    prompt = conv.get_prompt()
-    server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
-    """
-    prompt = ''
-    for msg in messages:
-        if not isinstance(msg, dict):
-            msg = msg.__dict__
-        role = msg['role']
-        if role.lower() == 'user' or role.lower() == 'system':
-            role_os = USER
-        elif role.lower() == 'assistant':
-            role_os = ASSISTANT
-        else: print(f'***** unknown role {role}')
-        prompt += role_os + str(msg['content'])
-    prompt += ASSISTANT
-    """
-    server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens}
+        # set this so client can check for run-on, although this test should pbly be here!
+    if format:
+        for msg in messages:
+            print(f'***** llm input msf {msg}')
+            role = msg['role']
+            if role.lower() == 'user' or role.lower()=='system':
+                role_index = 0
+            else:
+                role_index = 1
+            conv.append_message(conv.roles[role_index], msg['content'])
+        prompt = conv.get_prompt()
+    else:
+        prompt = messages
+    prompt = re.sub('\n{3,}', '\n\n', prompt)
+    print(f'***** llm output prompt string {prompt}')
+    server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens, 'user_prompt':USER_PREFIX}
     smj = json.dumps(server_message)
     try:
         client_socket = socket.socket()  # instantiate
@@ -124,6 +114,10 @@ def run_query(model, messages, temp, top_p, max_tokens, host = host, port = port
                     if tkroot is not None:
                         tkroot.update()
                 response += s
+                sep2_idx = response.find(conv.sep2)
+                if sep2_idx >= 0:
+                    response = response[sep2_idx:]
+                    break
         client_socket.close()  # close the connection
         #check for run on hallucination in response 
         runon_idx = response.find(conv.roles[0])

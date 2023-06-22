@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alphawave"
-version = "0.2.5"
+version = "0.2.6"
 authors = [
   { name="Steven Ickman", email="author@example.com" },
   { name="Bruce DAmbrosio", email="bruce.dambrosio@gmail.com" },
@@ -39,5 +39,5 @@ dependencies = [
 
 
 [project.urls]
-"Homepage" = "https://github.com/Stevenic/alphawave-py"
+"Homepage" = "https://tuuyi.io/alphawave"
 "Bug Tracker" = "https://github.com/Stevenic/alphawave-py/issues"

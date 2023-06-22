@@ -114,6 +114,7 @@ class AlphaWave(AsyncIOEventEmitter):
 
             if self.options.logRepairs:
                 if repair['status'] == 'success':
+                    self.emit('repairSuccess', fork, functions, tokenizer, response, max_repair_attempts, validation)
                     print(Colorize.success('Response Repaired'))
                 else:
                     print(Colorize.error('Response Repair Failed'))

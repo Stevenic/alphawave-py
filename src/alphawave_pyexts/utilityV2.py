@@ -23,7 +23,7 @@ import json
 import os
 import asyncio
 from typing import Any, Dict, List, Tuple
-import alphawave_pyexts.LLMClient as client
+import alphawave_pyexts.LLMClient as llm
 from promptrix.Prompt import Prompt
 from alphawave_agents.PromptCommand import PromptCommand
 from promptrix.UserMessage import UserMessage
@@ -45,7 +45,7 @@ def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None
     print(f'***** utility ask_LLL temperature {temp}')
     try:
       if not model.lower().startswith('gpt'):
-        completion = client.run_query(model, gpt_message, temp, top_p, max_tokens, host, port, tkroot, tkdisplay )
+        completion = llm.run_query(model, gpt_message, max_tokens, temp, top_p, host, port, tkroot, tkdisplay )
         if completion is not None:
           response = completion
 
