@@ -63,8 +63,11 @@ def submit(message, model, tokenizer, stop_event, conn):
     if 'max_tokens' in message_j.keys():
         max_tokens = message_j['max_tokens']
     user_prompt = 'User'
-    if 'user_prompt' in message_j.keys():
-        user_prompt = message_j['user_prompt']
+    if 'user' in message_j.keys():
+        user_prompt = message_j['user']
+    asst_prompt = 'Assistant'
+    if 'asst' in message_j.keys():
+        asst_prompt = message_j['asst']
     eos = '<|endoftext|>'
     if 'eos' in message_j.keys():
         eos = message_j['eos']
@@ -89,12 +92,12 @@ def submit(message, model, tokenizer, stop_event, conn):
     for new_text in streamer:
       print(new_text)
       test_text = generated_text + new_text
-      idx2 = test_text.find(user_prompt)
-      idx3 = test_text.find('###')
       idx1 = test_text.find('<|endoftext|>')
+      idx2 = test_text.find(user_prompt)
+      idx3 = -1 # test_text.find(asst_prompt)  ## not sure that is a good idea
       if stop_event.is_set(): # flush generate
         continue
-      if idx1>= 0 or idx2 >= 0 or idx3 >= 0:
+      if idx1>= 0 or idx2>=0 or idx3 >= 0:
         idx = min(max(idx1, 0), max(idx2,0), max(idx3,0))
         if idx > 0:
           conn.send(bytearray((new_text[:idx]).encode('utf8')))

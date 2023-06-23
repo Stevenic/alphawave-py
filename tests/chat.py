@@ -31,8 +31,12 @@ PROMPT = Prompt([
     UserMessage('{{$input}}')
 ])
 
+#print(f' models: {llm.get_available_models()}')
 parser = argparse.ArgumentParser()
-parser.add_argument('model', type=str, default='wizardLM', choices=['wizardLM', 'zero_shot', 'vicuna_v1.1', 'dolly', 'oasst_pythoa', 'stablelm', 'baize', 'rwkv', 'openbuddy', 'phoenix', 'claude', 'mpt', 'bard', 'billa', 'h2ogpt', 'snoozy', 'manticore', 'falcon_instruct', 'falcon_instruct2', 'falcon_instruct3', 'gpt_35', 'gpt_4'],help='select prompting based on modelto load')
+#parser.add_argument('model', type=str, default='wizardLM', choices=['guanaco', 'wizardLM', 'zero_shot', 'vicuna_v1.1', 'dolly', 'oasst_pythia', 'stablelm', 'baize', 'rwkv', 'openbuddy', 'phoenix', 'claude', 'mpt', 'bard', 'billa', 'h2ogpt', 'snoozy', 'manticore', 'falcon_instruct', 'gpt_35', 'gpt_4'],help='select prompting based on modelto load')
+
+parser.add_argument('model', type=str, default='wizardLM', choices=llm.get_available_models(),help='select prompting based on modelto load')
+
 parser.add_argument('--user', type=str, default='', help='user prefix, overrides model template')
 parser.add_argument('--asst', type=str, default='', help='assistant prefix, overrides model template')
 parser.add_argument('--stop1', type=str, default='',help='stop string')
@@ -82,11 +86,14 @@ PREV_LEN = 0
 def submit():
     global PREV_LEN
     input_text = input_area.get("1.0", tk.END)
-    if len(input_text) > PREV_LEN:
+    if FORMAT and len(input_text) > PREV_LEN:
         new_text = input_text[PREV_LEN:]
+    else:
+        new_text = input_text
     input_area.insert(tk.END, '\n')
     response = run_query(new_text)
-    PREV_LEN=len(input_text)
+    input_area.insert(tk.END, '\n')
+    PREV_LEN=len(input_area.get("1.0", tk.END))
 
 def setFormat():
     global FORMAT
@@ -101,19 +108,20 @@ def setFormat():
 def setPrompt():
     global PROMPT
     input_text = input_area.get("1.0", tk.END)
+    input_text = input_text.strip()
     if input_text.startswith("NoPrompt"):
         input_text = ''
     if input_text.startswith("Helpfull"):
-        input_text = 'Response as a helpful, friendly, information assistant. Say "I don\'t know" if you have no information"'
+        input_text = 'Respond as a helpful, friendly, information assistant. Say "I don\'t know" if you have no information"'
     if input_text.startswith("Bhagaven"):
         input_text = 'Respond as a compassionate, empathetic, self-realized follower of Ramana Maharshi'
     if input_text.startswith("ACT"):
         input_text = 'Respond as a compassionate, empathetic, counselor familiar with Acceptance Commitment Theray'
     if input_text.startswith("Flirt"):
-        input_text = 'Respond as a friendly,\ chatty, flirty young woman named Samantha. You are 21 years old.'
+        input_text = 'Respond as a friendly, chatty, flirty young woman named Samantha. You are 21 years old.'
     if input_text.startswith("Agent"):
         input_text =\
-            """
+            """INSTRUCTION"
 Define steps as:
 orient: identify the task
 thought: think step by step about the task. Identify ambiguities or logical consequences in the problem statement that impact your response to the task.
@@ -131,6 +139,7 @@ Display STOP
 
 Assistant will concisely display all orient, thought, action, and observation
 Assistant will follow the instructions in react above to respond to all questions and tasks.
+END INSTRUCTION
 """
     prompt_text = input_text
     PROMPT = Prompt([
@@ -232,9 +241,9 @@ memory = VolatileMemory({'input':'', 'history':[]})
 max_tokens = 2000
 # Render the prompt for a Text Completion call
 async def render_text_completion():
-    print(f"\n***** chat memory pre render \n{memory.get('history')}\n")
+    #print(f"\n***** chat memory pre render \n{memory.get('history')}\n")
     as_text = await PROMPT.renderAsText(memory, functions, tokenizer, max_tokens)
-    print(as_text)
+    #print(as_text)
     text = ''
     if not as_text.tooLong:
         text = as_text.output
@@ -242,8 +251,8 @@ async def render_text_completion():
 
 # Render the prompt for a Text Completion call
 async def render_messages_completion():
-    print(f"\n***** chat memory pre render input: \n{memory.get('input')}")
-    print(f"***** chat memory pre render \n{memory.get('history')}\n")
+    #print(f"\n***** chat memory pre render input: \n{memory.get('input')}")
+    #print(f"***** chat memory pre render \n{memory.get('history')}\n")
     as_msgs = await PROMPT.renderAsMessages(memory, functions, tokenizer, max_tokens)
     msgs = []
     if not as_msgs.tooLong:
@@ -260,12 +269,20 @@ def run_query(query):
         memory.set('input', query)
         if FORMAT:
             msgs = asyncio.run(render_messages_completion())
-            for msg in msgs:
-                print(str(msg))
+            #for msg in msgs:
+            #    print(str(msg))
             response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
             #print(response)
             history = memory.get('history')
+            print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
+            query = query.replace(llm.ASSISTANT_PREFIX+':', '')
+            query = query.replace(llm.ASSISTANT_PREFIX, '')
+            print(f'***** chat post query query {query}')
             history.append({'role':llm.USER_PREFIX, 'content': query})
+            response = response.replace(llm.ASSISTANT_PREFIX+':', '')
+            response = response.replace(llm.ASSISTANT_PREFIX, '')
+            print(f'response asst_prefix {llm.ASSISTANT_PREFIX}, response post-removal{response}')
+            print(f'***** chat post query response {response}')
             history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
             memory.set('history', history)
         else:

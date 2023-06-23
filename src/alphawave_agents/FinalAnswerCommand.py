@@ -11,7 +11,7 @@ from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand
 class CommandSchema(sbcCommandSchema):
     schema_type: str = "object"
     title: str = "finalAnswer"
-    description: str = "generate an answer for the user"
+    description: str = "show answer to the user"
     properties: dict = field(default_factory=lambda: {
         "answer": {
             "type": "string",
@@ -30,8 +30,9 @@ class FinalAnswerCommand(SchemaBasedCommand):
         super().__init__(CommandSchema(), title, description)
 
     def execute(self, input: FinalAnswerCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
+        print(f'\nAnswer: \n{input}\n')
         return {
             "type": "TaskResponse",
-            "status": "success",
-            "message": input['answer']
+            "status": "input_needed",
+            "message": "input['answer']"
         }

@@ -62,6 +62,13 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
         except ValidationError as e:
             errors = f'"{e.path[0] if e.path else "input"}": {e.message}'
             message = errors
+            if 'is a required property' in message:
+                return {
+                    'type': 'Validation',
+                    'valid': False,
+                    'feedback': f"The ['command']['input'] field has errors:\n{message}\n\nRevise to include the field with valid value."
+                }
+                
             return {
                 'type': 'Validation',
                 'valid': False,
