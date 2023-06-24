@@ -43,6 +43,8 @@ class Conversation:
     stop_str: str = None
     # Stops generation if meeting any token in this list
     stop_token_ids: List[int] = None
+    # prepends first msg text to front of prompt
+    first_msg_no_role:bool = False
 
     def get_prompt(self) -> str:
         """Get the prompt for generation."""
@@ -176,6 +178,7 @@ class Conversation:
             sep2=self.sep2,
             stop_str=self.stop_str,
             stop_token_ids=self.stop_token_ids,
+            first_msg_no_role=self.first_msg_no_role,
         )
 
     def dict(self):

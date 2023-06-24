@@ -10,6 +10,9 @@ from alphawave_pyexts import serverUtils as sv
 
 # Load the model.
 model_name = "databricks/dolly-v2-12b"
+print('devices', torch.cuda.device_count(), torch.cuda.current_device())
+print(f"Starting to load the model {model_name} into memory")
+
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 model = AutoModelForCausalLM.from_pretrained(
@@ -21,12 +24,7 @@ model = AutoModelForCausalLM.from_pretrained(
     )
 model.tie_weights()
 
-print('devices', torch.cuda.device_count(), torch.cuda.current_device())
-print(f"Starting to load the model {model_name} into memory")
-
-DEV=torch.cuda.current_device()
-
 print(f"Successfully loaded the model {model_name} into memory")
 
 if __name__ == '__main__':
-    sv.server_program(model, tokenizer)
+    sv.server_program(model=model, tokenizer=tokenizer, pipeline=None, stop_str=['### End'])

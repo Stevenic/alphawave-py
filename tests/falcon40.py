@@ -16,4 +16,4 @@ if __name__ == '__main__':
     print(f"Successfully loaded the model {model_name} into memory")
     print('**** ready to serve on port 5004')
 
-    sv.server_program(model, tokenizer)
+    sv.server_program(model=model, tokenizer=tokenizer)

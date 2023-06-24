@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alphawave"
-version = "0.2.6"
+version = "0.2.7"
 authors = [
   { name="Steven Ickman", email="author@example.com" },
   { name="Bruce DAmbrosio", email="bruce.dambrosio@gmail.com" },
 ]
 
-description = "AlphaWave - a very opinionated client for interfacing with Large Language Models (LLM)"
+description = "AlphaWave - a client for interfacing with Large Language Models (LLM)"
 
 
 readme = "README.md"
@@ -34,6 +34,9 @@ dependencies = [
     "tenacity",	
     "openai",
     "nltk",
+    "transformers",
+    "accelerate",
+    "torch",
     'importlib-metadata; python_version<"3.9"',
 ]
 

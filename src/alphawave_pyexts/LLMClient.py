@@ -16,26 +16,34 @@ SYSTEM_PREFIX = 'system'
 
 host='192.168.1.195'
 port = 5004
-cv.register_conv_template(Conversation(
-        name="dolly",
-        system="### Instruction",
-        roles=("### Input", "### Response"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep="\n",
-        sep2="### Response",
-    )
-)
-cv.register_conv_template(Conversation(
+
+cv.register_conv_template(
+    Conversation(
         name="falcon_instruct",
         system="",
         roles=("User", "Assistant"),
         messages=(),
         offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        #stop_str=["User"],  # use stop_str to stop generation after stop_token_ids, it will also remove stop_str from the generated text
+        stop_token_ids=[11],
         sep="\n",
-        sep2="\nAssistant:\n",
+        sep2="",
+        first_msg_no_role=True,
+    )
+)
+cv.register_conv_template(
+    Conversation(
+        name="falcon_instruct2",
+        system="",
+        roles=(">>QUESTION<<", ">>ANSWER<<"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        stop_str="\nUser",  # use stop_str to stop generation after stop_token_ids, it will also remove stop_str from the generated text
+   
+        sep="\n",
+        sep2="",
     )
 )
 
@@ -47,7 +55,7 @@ cv.register_conv_template(Conversation(
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
-        sep2="Assistant:\n",
+        sep2="",
     )
 )
 cv.register_conv_template(Conversation(
@@ -80,23 +88,26 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
     # set this so client can check for run-on, although this test should pbly be here!
     if format:
         conv.system='' # no default prompt
-        for msg in messages:
-            #print(f'***** llm input msf {msg}')
+        for msg_idx, msg in enumerate(messages):
+            print(f'***** llm {msg_idx}, {conv.first_msg_no_role}')
+            if conv.first_msg_no_role and msg_idx ==0:
+                continue
             role = msg['role']
             ### conv.system is a prompt msg, and will be inserted as the first entry by conv.get_prompt()
-            if role.lower() == 'system':
-                conv.system = msg['content']
-                continue
-            elif role.lower() == 'user' or role.lower() == 'system' or role == conv.roles[0]:
+            #if role.lower() == 'system':
+            #    conv.system = msg['content']
+            #    continue
+            if role.lower() == 'user' or role.lower() == 'system' or role == conv.roles[0]:
                 role_index = 0
             else:
                 role_index = 1
             conv.append_message(conv.roles[role_index], msg['content'])
 
             #priming prompt
-            conv.append_message(conv.roles[1], '')
+        conv.append_message(conv.roles[1], '')
         prompt = conv.get_prompt()
-
+        if conv.first_msg_no_role:
+            prompt = messages[0]['content']+conv.sep+prompt
     else:
         prompt = messages
     prompt = re.sub('\n{3,}', '\n\n', prompt)

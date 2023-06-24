@@ -26,4 +26,4 @@ if __name__ == '__main__':
     )
     model.tie_weights()
     print('**** ready to serve on port 5004')
-    sv.server_program(model, tokenizer)
+    sv.server_program(model=model, tokenizer=tokenizer)

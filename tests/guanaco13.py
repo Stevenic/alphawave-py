@@ -30,4 +30,4 @@ DEV=torch.cuda.current_device()
 print(f"Successfully loaded the model {model_name} into memory")
 
 if __name__ == '__main__':
-    sv.server_program(model, tokenizer)
+    sv.server_program(model=model, tokenizer=tokenizer)

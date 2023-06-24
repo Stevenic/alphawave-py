@@ -87,13 +87,14 @@ def submit():
     global PREV_LEN
     input_text = input_area.get("1.0", tk.END)
     if FORMAT and len(input_text) > PREV_LEN:
-        new_text = input_text[PREV_LEN:]
+        new_text = input_text[PREV_LEN:].strip()
     else:
-        new_text = input_text
+        new_text = input_text.strip()
     input_area.insert(tk.END, '\n')
     response = run_query(new_text)
-    input_area.insert(tk.END, '\n')
+    input_area.insert(tk.END, '\n').strip()
     PREV_LEN=len(input_area.get("1.0", tk.END))
+    return(input, response)
 
 def setFormat():
     global FORMAT
@@ -274,16 +275,16 @@ def run_query(query):
             response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
             #print(response)
             history = memory.get('history')
-            print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
-            query = query.replace(llm.ASSISTANT_PREFIX+':', '')
-            query = query.replace(llm.ASSISTANT_PREFIX, '')
-            print(f'***** chat post query query {query}')
-            history.append({'role':llm.USER_PREFIX, 'content': query})
+            #print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
+            #query = query.replace(llm.ASSISTANT_PREFIX+':', '')
+            #query = query.replace(llm.ASSISTANT_PREFIX, '')
+            #print(f'***** chat post query query {query}')
+            history.append({'role':llm.USER_PREFIX, 'content': query.strip()})
             response = response.replace(llm.ASSISTANT_PREFIX+':', '')
             response = response.replace(llm.ASSISTANT_PREFIX, '')
-            print(f'response asst_prefix {llm.ASSISTANT_PREFIX}, response post-removal{response}')
-            print(f'***** chat post query response {response}')
-            history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
+            #print(f'response asst_prefix {llm.ASSISTANT_PREFIX}, response post-removal{response}')
+            #print(f'***** chat post query response {response}')
+            history.append({'role': llm.ASSISTANT_PREFIX, 'content': response.strip()})
             memory.set('history', history)
         else:
             # just send the raw input text to server
