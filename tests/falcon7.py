@@ -24,25 +24,15 @@ if __name__ == '__main__':
 
     sv.server_program(model, tokenizer)
 """
-model = "tiiuae/falcon-7b-instruct"
+model_name = "tiiuae/falcon-7b-instruct"
 
-tokenizer = AutoTokenizer.from_pretrained(model)
+tokenizer = AutoTokenizer.from_pretrained(model_name, skip_special_tokens=True, spaces_between_special_tokens=False)
 pipeline = transformers.pipeline(
     "text-generation",
-    model=model,
+    model=model_name,
     tokenizer=tokenizer,
-    torch_dtype=torch.bfloat16,
     trust_remote_code=True,
     device_map="auto",
 )
-sv.server_program(model=None, tokenizer=None, pipeline = pipeline)
-#sequences = pipeline(
-#   "Girafatron is obsessed with giraffes, the most glorious animal on the face of this Earth. Giraftron believes all other animals are irrelevant when compar#ed to the glorious majesty of the giraffe.\nDaniel: Hello, Girafatron!\nGirafatron:",
-#    max_length=200,
-#    do_sample=True,
-#    top_k=10,
-#    num_return_sequences=1,
-#    eos_token_id=tokenizer.eos_token_id,
-#)
-
-
+sv.server(model=None, tokenizer=tokenizer, pipeline = pipeline, stop_str=['User:'])
+#sv.server(model=model, tokenizer=tokenizer, pipeline = None, stop_str=['User:'])

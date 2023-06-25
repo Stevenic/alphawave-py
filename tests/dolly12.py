@@ -27,4 +27,4 @@ model.tie_weights()
 print(f"Successfully loaded the model {model_name} into memory")
 
 if __name__ == '__main__':
-    sv.server_program(model=model, tokenizer=tokenizer, pipeline=None, stop_str=['### End'])
+    sv.server(model=model, tokenizer=tokenizer, pipeline=None, stop_str=['### End', '###'])

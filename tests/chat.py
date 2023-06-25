@@ -26,7 +26,7 @@ FORMAT=True
 
 prompt_text = 'You are helpful, creative, clever, and very friendly. '
 PROMPT = Prompt([
-    UserMessage(prompt_text),
+    SystemMessage(prompt_text),
     ConversationHistory('history', .5),
     UserMessage('{{$input}}')
 ])
@@ -92,7 +92,7 @@ def submit():
         new_text = input_text.strip()
     input_area.insert(tk.END, '\n')
     response = run_query(new_text)
-    input_area.insert(tk.END, '\n').strip()
+    input_area.insert(tk.END, '\n')
     PREV_LEN=len(input_area.get("1.0", tk.END))
     return(input, response)
 
@@ -203,7 +203,7 @@ clear_button = tk.Button(controlFrame,  text="Clear", command=clear, font=("Aria
 clear_button.pack(side='top', fill='x')
 
 temperature = tk.StringVar()
-temperature.set('.7')
+temperature.set('.1')
 temperature.trace("w", on_value_change)
 temp_label = ttk.Label(controlFrame, text="Temperature", style='TLabel')
 temp_label.pack(side='top', fill='x')

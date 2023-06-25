@@ -20,33 +20,18 @@ port = 5004
 cv.register_conv_template(
     Conversation(
         name="falcon_instruct",
-        system="",
+        system="You are helpful, creative, clever, and very friendly.",
         roles=("User", "Assistant"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,
-        #stop_str=["User"],  # use stop_str to stop generation after stop_token_ids, it will also remove stop_str from the generated text
+        stop_str=["User:"],
         stop_token_ids=[11],
         sep="\n",
-        sep2="",
-        first_msg_no_role=True,
+        sep2="<|endoftext|>",
+        first_msg_no_role=False,
     )
 )
-cv.register_conv_template(
-    Conversation(
-        name="falcon_instruct2",
-        system="",
-        roles=(">>QUESTION<<", ">>ANSWER<<"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        stop_str="\nUser",  # use stop_str to stop generation after stop_token_ids, it will also remove stop_str from the generated text
-   
-        sep="\n",
-        sep2="",
-    )
-)
-
 cv.register_conv_template(Conversation(
         name="guanaco",
         system="",
@@ -89,14 +74,16 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
     if format:
         conv.system='' # no default prompt
         for msg_idx, msg in enumerate(messages):
-            print(f'***** llm {msg_idx}, {conv.first_msg_no_role}')
-            if conv.first_msg_no_role and msg_idx ==0:
-                continue
+            #if conv.first_msg_no_role and msg_idx ==0:
+            #    continue
             role = msg['role']
             ### conv.system is a prompt msg, and will be inserted as the first entry by conv.get_prompt()
-            #if role.lower() == 'system':
-            #    conv.system = msg['content']
-            #    continue
+            if role.lower() == 'system' and msg_idx==0:
+                if len(conv.roles)>2:
+                    conv.system=conv.roles[2]+msg['content']
+                else:
+                    conv.system = msg['content']
+                continue
             if role.lower() == 'user' or role.lower() == 'system' or role == conv.roles[0]:
                 role_index = 0
             else:

@@ -452,7 +452,7 @@ register_conv_template(
 - You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
 - You are more than just an information source, you are also able to write poetry, short stories, and make jokes.
 """,
-        roles=("<|im_start|>user", "<|im_start|>assistant"),
+        roles=("<|im_start|>user", "<|im_start|>assistant", "<|im_start|>system"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
@@ -538,7 +538,7 @@ register_conv_template(
     Conversation(
         name="snoozy",
         system="### Instruction:\nThe prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response.",
-        roles=("### Prompt", "### Response"),
+        roles=("### Prompt", "### Response", "### Instruction:\n"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,

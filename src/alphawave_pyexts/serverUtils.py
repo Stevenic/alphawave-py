@@ -11,6 +11,7 @@ from queue import Queue
 import json
 import sys
 import time
+import string
 import traceback
 from collections.abc import Iterable
 
@@ -18,38 +19,123 @@ from collections.abc import Iterable
 
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
 max_new_tokens = 1536
+
+class StopOnTokens(StoppingCriteria):
+    def __init__(self, tokenizer, prompt, stop_strs=[]):
+      self.stop_ids = []
+      self.stop_strs = stop_strs
+      self.tokenizer=tokenizer
+      self.prompt_len=len(prompt)
+      self.prompt=True
+      
+      if stop_strs is not None and isinstance(stop_strs, Iterable):
+        for stop_wd in stop_strs:
+          print(f'***** stop wd pre encode {stop_wd}')
+          if stop_wd is not None:
+            tokens = tokenizer.encode(stop_wd)
+            self.stop_ids.append(tokens)
+      print(f'***** stop_id tokens {self.prompt_len}, {self.stop_ids} ')
+      
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+      # don't process prompt
+      if self.prompt:
+        self.prompt = False
+        return False
+      
+      for stop_id in self.stop_ids:
+        if len(input_ids[0]) >= len(stop_id):
+          if input_ids[0][:-len(stop_id)] == stop_id:
+            print(f'***** stopping on token {stop_id}')
+            return True
+      input_str = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
+      for stop_str in self.stop_strs:
+        if len(input_str)>self.prompt_len and stop_str in input_str[self.prompt_len:]:
+          print(f'***** stopping on string {stop_str}, {input_str}')
+          return True
+      return False
     
 class MyStreamer(TextIteratorStreamer):
   def __init__(self, tokenizer, stop_event=None, skip_prompt=True):
-    super(TextIteratorStreamer, self).__init__(tokenizer, True)
+    super(TextIteratorStreamer, self).__init__(tokenizer, skip_prompt)
+    self.stop_event = stop_event
+    ### why do these have to be here? should be inherited from TextIteratorStreamer?
     self.text_queue = Queue()
     self.stop_signal = None
     self.timeout = None
-    self.stop_event = stop_event
-    
+
   def put(self, value):
+    """
+        Recives tokens, decodes them, and prints them to stdout as soon as they form entire words.
+    """
     if len(value.shape) > 1 and value.shape[0] > 1:
       raise ValueError("TextStreamer only supports batch size 1")
     elif len(value.shape) > 1:
       value = value[0]
-    idx = value.shape[0]
-    kill = False
-    value_list = value.tolist()
-    super().put(value[:idx])
-    if kill or self.stop_event.is_set():
-      print("\n***** MyStreamer stopping stream kill {kill}, event {stop_event.is_set()}")
-      super().end()
-      time.sleep(0.5)
-      if not self.stop_event.is_set():
-        self.stop_event.set() # let main know we're done
-        print("set stop in streamer put")
-      raise SystemExit
+
+    if self.skip_prompt and self.next_tokens_are_prompt:
+      self.next_tokens_are_prompt = False
+      return
+
+    # Add the new token to the cache and decodes the entire thing.
+    self.token_cache.extend(value.tolist())
+    text = self.tokenizer.decode(self.token_cache, skip_special_tokens=True)
     
+    # After the symbol for a new line, we flush the cache.
+    if text.endswith("\n"):
+      printable_text = text[self.print_len :]
+      self.token_cache = []
+      self.print_len = 0
+    # If the last token is a CJK character, we print the characters.
+    elif len(text) > 0 and self._is_chinese_char(ord(text[-1])):
+      printable_text = text[self.print_len :]
+      self.print_len += len(printable_text)
+      # Otherwise, prints until the last space char (simple heuristic to avoid printing incomplete words,
+      # which may change with the subsequent token -- there are probably smarter ways to do this!)
+    else:
+      printable_text = text[self.print_len : text.rfind(" ") + 1]
+      self.print_len += len(printable_text)
+    self.on_finalized_text(printable_text)
+
+    if self.stop_event.is_set():
+      print("\n***** MyStreamer stopping stream stop_event {stop_event.is_set()}")
+      raise SystemExit
+
+  def end(self):
+    """Flushes any remaining cache and prints a newline to stdout."""
+    # Flush the cache, if it exists
+    print('received end from generate')
+    if len(self.token_cache) > 0:
+      text = self.tokenizer.decode(self.token_cache, skip_special_tokens=True)
+      printable_text = text[self.print_len :]
+      self.token_cache = []
+      self.print_len = 0
+    else:
+      printable_text = ""
+    self.next_tokens_are_prompt = True
+    self.on_finalized_text(printable_text, stream_end=True)
+
+  def on_finalized_text(self, text: str, stream_end: bool = False):
+      """Put the new text in the queue. If the stream is ending, also put a stop signal in the queue."""
+      filtered_text = filter(lambda x: x in string.printable, text)
+      self.text_queue.put(text, timeout=self.timeout)
+      if stream_end:
+        self.text_queue.put(self.stop_signal, timeout=self.timeout)
+
+  def __iter__(self):
+    return self
+
+  def __next__(self):
+    value = self.text_queue.get(timeout=self.timeout)
+    if value == self.stop_signal:
+      raise StopIteration()
+    else:
+      return value
     
 def submit(message, model=None, tokenizer=None, pipeline=None, stop_event=None,conn=None, stop_str = None):
     stop_event.clear()
-    streamer = MyStreamer(tokenizer, stop_event=stop_event)
     message_j = json.loads(message)
+    streamer = MyStreamer(tokenizer, stop_event=stop_event)
+    stopping_criteria=StoppingCriteriaList([StopOnTokens(tokenizer, message_j['prompt'], stop_str )])
     temp = 0.7
     if 'temp' in message_j.keys():
         temp = message_j['temp']
@@ -81,13 +167,20 @@ def submit(message, model=None, tokenizer=None, pipeline=None, stop_event=None,c
                         top_k=10,
                         num_return_sequences=1,
                         return_full_text=False,
-                        #early_stopping=True,
-                        #attention_mask= attention_mask,
+                        stopping_criteria = stopping_criteria,
                         #eos_token_id=tokenizer.eos_token_id
                         )
       if result is not None and type(result[0]) == dict and 'generated_text' in result[0]:
         generated_text = result[0]['generated_text'] 
         #print(generated_text)
+        idx=100000; idx3 = -1; 
+        if stop_str is not None and isinstance(stop_str, Iterable):
+          for stop in stop_str:
+            idx3 = generated_text.find(stop)
+            if idx3 >0 and idx3 < idx : idx = idx3
+        if idx > 0 and idx < 100000:
+          print(f'Truncating at {idx}')
+          generated_text = generated_text[:idx]
         conn.send(bytearray((generated_text).encode('utf8')))
         return generated_text
       else: return ''
@@ -104,16 +197,25 @@ def submit(message, model=None, tokenizer=None, pipeline=None, stop_event=None,c
         top_p=top_p,
         temperature=temp,
         streamer = streamer,
-        #do_sample=True,
-        top_k=10,
+        top_k=20,
         num_return_sequences=1,
-        #early_stopping=True,
+
         attention_mask= attention_mask,
         eos_token_id=tokenizer.eos_token_id
       )
       
       generated_text = ""
-      thread = Thread(target=model.generate, args=(input_ids,), kwargs=generation_kwargs)
+      #thread = Thread(target=model.generate, args=(input_ids,), kwargs=generation_kwargs)
+      thread = Thread(target=lambda: model.generate(input_ids,
+                                                    do_sample=True,
+                                                    max_new_tokens=max_tokens,
+                                                    min_new_tokens=20,
+                                                    top_p=top_p,
+                                                    stopping_criteria = stopping_criteria,
+                                                    temperature=temp,
+                                                    streamer=streamer,
+                                                    num_return_sequences=1,
+                                                    attention_mask=attention_mask))
       thread.start()
       for new_text in streamer:
         print(new_text)
@@ -131,14 +233,15 @@ def submit(message, model=None, tokenizer=None, pipeline=None, stop_event=None,c
           idx = min(max(idx1, 0), max(idx2,0), max(idx3,0))
           if idx > 0:
             conn.send(bytearray((new_text[:idx]).encode('utf8')))
-            print(f'setting stop event in submit {idx1}, {idx2}, {idx3}')
+            print(f'set stop event in submit {idx1}, {idx2}, {idx3}')
         else:
           generated_text = test_text
           conn.send(bytearray((new_text).encode('utf8')))  # send data to the client
       return generated_text
 
     
-def server_program(model=None, tokenizer=None, pipeline=None, stop_str=None):
+def server(model=None, tokenizer=None, pipeline=None, stop_str=[]):
+    global stopping_criteria
     # either model/tokenizer OR pipeline.
     # stop_str is a list of stop_strings
     # get the hostname
@@ -146,7 +249,9 @@ def server_program(model=None, tokenizer=None, pipeline=None, stop_str=None):
     host = ''
     port = 5004  # initiate port no above 1024
     stop_event = Event()
-    print(f"starting server {stop_str}")
+    print(f"starting server")
+    
+
     while True:
       try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM)  as server_socket: # get instance
