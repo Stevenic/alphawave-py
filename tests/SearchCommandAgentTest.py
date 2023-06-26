@@ -11,13 +11,16 @@ from alphawave_agents.AskCommand import AskCommand
 from alphawave_agents.FinalAnswerCommand import FinalAnswerCommand
 
 # Create an OpenAI client
-#client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
-#model = 'gpt-3.5-turbo'
+search_client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
+search_model = 'gpt-3.5-turbo'
 
 #create OS client
 client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
-model = 'wizardLM'
-
+#model = 'wizardLM'
+#model = 'vicuna_v1.1'
+#model ='guanaco'
+#model='mpt_instruct'
+model='chatglm2'
 initial_prompt = \
 """
 Hi! I'm here to help.
@@ -53,7 +56,7 @@ agent = Agent(options = agent_options)
 
 # Add core commands to the agent
 agent.addCommand(AskCommand())
-agent.addCommand(SearchCommand(client, model))
+agent.addCommand(SearchCommand(search_client, search_model))
 agent.addCommand(FinalAnswerCommand())
 
 

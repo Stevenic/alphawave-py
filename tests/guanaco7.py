@@ -30,6 +30,6 @@ pipeline = transformers.pipeline(
     device_map="auto",
 )
 #sv.server(model=model, tokenizer=tokenizer, pipeline = None, stop_str=['H:', 'Human:', 'User:'])
-sv.server(model=None, tokenizer=None, pipeline = pipeline, stop_str=['H:', 'Human:', 'User:'])
+sv.server(model=None, tokenizer=tokenizer, pipeline = pipeline, stop_str=['H:', 'Human:', 'User:'])
 
 print(f"Successfully loaded the model {model_name} into memory")

@@ -20,7 +20,7 @@ port = 5004
 cv.register_conv_template(
     Conversation(
         name="falcon_instruct",
-        system="You are helpful, creative, clever, and very friendly.",
+        system="",
         roles=("User", "Assistant"),
         messages=(),
         offset=0,
@@ -45,8 +45,23 @@ cv.register_conv_template(Conversation(
 )
 cv.register_conv_template(Conversation(
         name="wizardLM",
-        system="### Instruction",
+        system="""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+### Instruction
+""",
         roles=("### Input", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep="\n",
+        sep2="\n",
+    )
+)
+cv.register_conv_template(Conversation(
+        name="wizardLM2",
+        system="""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+### Instruction
+""",
+        roles=("User", "Assistant"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_TWO,
@@ -72,29 +87,30 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
     
     # set this so client can check for run-on, although this test should pbly be here!
     if format:
-        conv.system='' # no default prompt
+        prime=''
         for msg_idx, msg in enumerate(messages):
-            #if conv.first_msg_no_role and msg_idx ==0:
-            #    continue
             role = msg['role']
             ### conv.system is a prompt msg, and will be inserted as the first entry by conv.get_prompt()
             if role.lower() == 'system' and msg_idx==0:
-                if len(conv.roles)>2:
-                    conv.system=conv.roles[2]+msg['content']
+                if len(conv.system)>0:
+                    prime = msg['content']+' '+conv.system
                 else:
-                    conv.system = msg['content']
-                continue
-            if role.lower() == 'user' or role.lower() == 'system' or role == conv.roles[0]:
+                    prime = msg['content']
+                if len(conv.roles)>2:
+                    conv.append_message(conv.roles[2], prime)
+                    prime=''
+            elif role.lower() == 'user' or role.lower() == 'system' or role == conv.roles[0]:
                 role_index = 0
+                conv.append_message(conv.roles[role_index], msg['content'])
             else:
                 role_index = 1
-            conv.append_message(conv.roles[role_index], msg['content'])
-
-            #priming prompt
+                conv.append_message(conv.roles[role_index], msg['content'])
+            
+        #priming prompt
         conv.append_message(conv.roles[1], '')
         prompt = conv.get_prompt()
-        if conv.first_msg_no_role:
-            prompt = messages[0]['content']+conv.sep+prompt
+        if len(prime) > 0:
+            prompt = prime+conv.sep+prompt
     else:
         prompt = messages
     prompt = re.sub('\n{3,}', '\n\n', prompt)

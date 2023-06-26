@@ -65,8 +65,9 @@ class MyStreamer(TextIteratorStreamer):
 
   def put(self, value):
     """
-        Recives tokens, decodes them, and prints them to stdout as soon as they form entire words.
+        Receives tokens, decodes them, and prints them to stdout as soon as they form entire words.
     """
+
     if len(value.shape) > 1 and value.shape[0] > 1:
       raise ValueError("TextStreamer only supports batch size 1")
     elif len(value.shape) > 1:
@@ -95,10 +96,11 @@ class MyStreamer(TextIteratorStreamer):
       printable_text = text[self.print_len : text.rfind(" ") + 1]
       self.print_len += len(printable_text)
     self.on_finalized_text(printable_text)
-
     if self.stop_event.is_set():
-      print("\n***** MyStreamer stopping stream stop_event {stop_event.is_set()}")
-      raise SystemExit
+        self.on_finalized_text(" ", stream_end=True)
+        print(f"\n***** MyStreamer exit stop_event is {self.stop_event.is_set()}")
+        time.sleep(0.1)
+        raise SystemExit
 
   def end(self):
     """Flushes any remaining cache and prints a newline to stdout."""
@@ -230,10 +232,14 @@ def submit(message, model=None, tokenizer=None, pipeline=None, stop_event=None,c
           continue
         if idx1>= 0 or idx2>=0 or idx3 >= 0:
           stop_event.set()
-          idx = min(max(idx1, 0), max(idx2,0), max(idx3,0))
-          if idx > 0:
-            conn.send(bytearray((new_text[:idx]).encode('utf8')))
-            print(f'set stop event in submit {idx1}, {idx2}, {idx3}')
+          # get the earliest stop found
+          idx = 1000000
+          for candidate_idx in [idx1, idx2, idx3]:
+              if candidate_idx >= 0 and candidate_idx < idx:
+                  idx = candidate_idx
+          print(f'set stop event in submit {idx1}, {idx2}, {idx3}, stop on {idx}')
+          if idx < len(test_text) and idx > len(generated_text):  #see if there is anything to send
+            conn.send(bytearray((test_text[len(generated_text):idx]).encode('utf8')))
         else:
           generated_text = test_text
           conn.send(bytearray((new_text).encode('utf8')))  # send data to the client

@@ -21,9 +21,7 @@ if __name__ == '__main__':
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         load_in_8bit=True,
-        #torch_dtype=torch.bfloat16,
         device_map="auto",
-        #trust_remote_code=True
     )
     model.tie_weights()
     pipeline = transformers.pipeline(
@@ -34,5 +32,5 @@ if __name__ == '__main__':
     )
     
     print('**** ready to serve on port 5004')
-    #sv.server(model=model, tokenizer=tokenizer)
-    sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['###', '### Input', '### Response'])
+    sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
+    #sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['###', '### Input', '### Response'])

@@ -19,6 +19,8 @@ class SeparatorStyle(Enum):
     RWKV = auto()
     PHOENIX = auto()
     ROBIN = auto()
+    SINGLE = auto()
+
 
 
 @dataclasses.dataclass
@@ -46,10 +48,22 @@ class Conversation:
     # prepends first msg text to front of prompt
     first_msg_no_role:bool = False
 
-    def get_prompt(self) -> str:
+    def get_prompt(self, include_system=False) -> str:
         """Get the prompt for generation."""
+        if self.sep_style == SeparatorStyle.SINGLE:
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
+            for role, message in self.messages:
+                if message:
+                    ret += role + ": " + "<s>" + message + "</s>\n"
+                else:
+                    ret += role + ": " + "<s>\n"
+            return ret
         if self.sep_style == SeparatorStyle.ADD_COLON_SINGLE:
-            ret = self.system + self.sep
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
             for role, message in self.messages:
                 if message:
                     ret += role + ": " + message + self.sep
@@ -58,7 +72,9 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.ADD_COLON_TWO:
             seps = [self.sep, self.sep2]
-            ret = self.system + seps[0]
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
             for i, (role, message) in enumerate(self.messages):
                 if message:
                     ret += role + ": " + message + seps[i % 2]
@@ -66,7 +82,9 @@ class Conversation:
                     ret += role + ":"
             return ret
         elif self.sep_style == SeparatorStyle.ADD_COLON_SPACE_SINGLE:
-            ret = self.system + self.sep
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
             for role, message in self.messages:
                 if message:
                     ret += role + ": " + message + self.sep
@@ -74,7 +92,9 @@ class Conversation:
                     ret += role + ": "  # must be end with a space
             return ret
         elif self.sep_style == SeparatorStyle.ADD_NEW_LINE_SINGLE:
-            ret = self.system + self.sep
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
             for role, message in self.messages:
                 if message:
                     ret += role + "\n" + message + self.sep
@@ -82,7 +102,9 @@ class Conversation:
                     ret += role + "\n"
             return ret
         elif self.sep_style == SeparatorStyle.NO_COLON_SINGLE:
-            ret = self.system
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system
             for role, message in self.messages:
                 if message:
                     ret += role + message + self.sep
@@ -90,7 +112,9 @@ class Conversation:
                     ret += role
             return ret
         elif self.sep_style == SeparatorStyle.RWKV:
-            ret = self.system
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system
             for i, (role, message) in enumerate(self.messages):
                 if message:
                     ret += (
@@ -104,7 +128,9 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.DOLLY:
             seps = [self.sep, self.sep2]
-            ret = self.system
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system
             for i, (role, message) in enumerate(self.messages):
                 if message:
                     ret += role + ":\n" + message + seps[i % 2]
@@ -114,7 +140,9 @@ class Conversation:
                     ret += role + ":\n"
             return ret
         elif self.sep_style == SeparatorStyle.PHOENIX:
-            ret = self.system
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system
             for role, message in self.messages:
                 if message:
                     ret += role + ": " + "<s>" + message + "</s>"
@@ -122,7 +150,9 @@ class Conversation:
                     ret += role + ": " + "<s>"
             return ret
         elif self.sep_style == SeparatorStyle.ROBIN:
-            ret = self.system + self.sep
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
             for role, message in self.messages:
                 if message:
                     ret += role + ":\n" + message + self.sep
@@ -259,8 +289,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="vicuna_v1.1",
-        system="A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+        system="",
         roles=("USER", "ASSISTANT"),
         messages=(),
         offset=0,
@@ -301,7 +330,21 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="dolly_v2",
-        system="Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n",
+        system="",
+        roles=("### Instruction", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.DOLLY,
+        sep="\n\n",
+        sep2="### End",
+    )
+)
+
+# ChatGLM2 default template
+register_conv_template(
+    Conversation(
+        name="chatglm2",
+        system="",
         roles=("### Instruction", "### Response"),
         messages=(),
         offset=0,
@@ -420,7 +463,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="chatgpt",
-        system="You are a helpful assistant.",
+        system="",
         roles=("user", "assistant"),
         messages=(),
         offset=0,
@@ -457,6 +500,21 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
         sep="<|im_end|>",
+        stop_token_ids=[50278, 0],
+    )
+)
+# MPT instruct template as per HG MPT 30b instruct model page
+register_conv_template(
+    Conversation(
+        name="mpt_instruct",
+        system=""""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+""",
+        roles=("### Instruction", "### Response",""),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep="\n",
         stop_token_ids=[50278, 0],
     )
 )
