@@ -5,6 +5,7 @@ import readline as re
 
 from promptrix.promptrixTypes import Message, PromptFunctions, PromptSection, PromptMemory, Tokenizer
 from promptrix.ConversationHistory import ConversationHistory
+from promptrix.AssistantMessage import AssistantMessage
 from promptrix.FunctionRegistry import  FunctionRegistry
 from promptrix.GPT3Tokenizer import GPT3Tokenizer
 from promptrix.Prompt import Prompt
@@ -100,8 +101,8 @@ class AlphaWave(AsyncIOEventEmitter):
                 print(Colorize.title('REPAIRING RESPONSE:'))
                 print(Colorize.output(memory))
             fork = MemoryFork(memory)
-            #self.addInputToHistory(fork, history_variable, input)
-            #self.addResponseToHistory(fork, history_variable, response['message'])
+            self.addInputToHistory(fork, history_variable, input)
+            self.addResponseToHistory(fork, history_variable, response['message'])
 
             if self.options.logRepairs:
                 print(Colorize.output(response['message']['content']))
@@ -164,7 +165,8 @@ class AlphaWave(AsyncIOEventEmitter):
         # Append repair history to prompt
         repair_prompt = Prompt([
             prompt,
-            ConversationHistory(f"{self.options.history_variable}-repair")
+            ConversationHistory(f"{self.options.history_variable}-repair"),
+            AssistantMessage('')       # not sure all models need this, but some do, maybe doesn't hurt?
         ])
 
         # Log the repair

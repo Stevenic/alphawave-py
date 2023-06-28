@@ -10,10 +10,10 @@ from EndSceneCommand import EndSceneCommand
 from CharacterCommand import CharacterCommand
 
 # Create an OpenAI client
-client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
-model = 'gpt-3.5-turbo'
-#client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
-#model = 'wizardLM'
+#client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+#model = 'gpt-3.5-turbo'
+client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+model = 'chatglm2'
 
 initial_prompt = "\n".join([
     "Welcome to Macbeth, a tragedy by William Shakespeare.",

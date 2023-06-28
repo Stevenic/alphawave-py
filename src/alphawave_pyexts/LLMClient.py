@@ -25,7 +25,7 @@ cv.register_conv_template(
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,
-        stop_str=["User:"],
+        stop_str=["User:", "Assistant:"],
         stop_token_ids=[11],
         sep="\n",
         sep2="<|endoftext|>",
@@ -89,6 +89,7 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
     if format:
         prime=''
         for msg_idx, msg in enumerate(messages):
+            #print(msg_idx, msg)
             role = msg['role']
             ### conv.system is a prompt msg, and will be inserted as the first entry by conv.get_prompt()
             if role.lower() == 'system' and msg_idx==0:
@@ -105,9 +106,9 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
             else:
                 role_index = 1
                 conv.append_message(conv.roles[role_index], msg['content'])
-            
-        #priming prompt
-        conv.append_message(conv.roles[1], '')
+                #print(conv.messages[-1])
+        #priming prompt - removed, user will add?
+        #conv.append_message(conv.roles[1], '')
         prompt = conv.get_prompt()
         if len(prime) > 0:
             prompt = prime+conv.sep+prompt
@@ -149,10 +150,12 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
                     if tkroot is not None:
                         tkroot.update()
                 response += s
-                sep2_idx = response.find(conv.sep2)
-                if sep2_idx >= 0:
-                    response = response[sep2_idx:]
-                    break
+                # not sure why sep2 code below is here???
+                if conv.sep2 is not None:
+                    sep2_idx = response.find(conv.sep2)
+                    if sep2_idx >= 0:
+                        response = response[sep2_idx:]
+                        break
         client_socket.close()  # close the connection
         #check for run on hallucination in response 
         runon_idx = response.find(conv.roles[0])

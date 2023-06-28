@@ -130,7 +130,6 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         history = self.memory.get('history')
         assert_that(history).is_equal_to([{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': 'Hello' }])
         self.memory.clear()
-    """
 
     async def test_prompt_completion_with_repair(self):
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
@@ -255,7 +254,7 @@ class TestAlphaWave(aiounittest.AsyncTestCase):
         history = self.memory.get('history')
         assert_that(history).is_equal_to([{ 'role': 'user', 'content': 'Hi' },{ 'role': 'assistant', 'content': { 'foo': 'bar'} }])
         self.memory.clear()
-    """
+
 if __name__ == '__main__':
     print('starting')
     unittest.main()

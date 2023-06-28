@@ -13,6 +13,8 @@ from promptrix.GPT3Tokenizer import GPT3Tokenizer
 from promptrix.VolatileMemory import VolatileMemory
 from promptrix.ConversationHistory import ConversationHistory
 from promptrix.TextSection import TextSection
+from promptrix.AssistantMessage import AssistantMessage
+from promptrix.UserMessage import UserMessage
 from promptrix.Utilities import Utilities
 from promptrix.TemplateSection import TemplateSection
 from promptrix.Prompt import Prompt
@@ -42,14 +44,7 @@ class AgentCommandSchema(BaseModel):
     }
     required: list[str] = ["input"]
 
-PromptInstructionSection = TemplateSection("\n".join([
-    "Return a JSON object with your thoughts and the next command to perform",
-    "Only respond with the JSON format below and based your plan on the commands above",
-    "Response Format:",
-    '{"thoughts":{"thought":"<your current thought>","reasoning":"<self reflect on why you made this decision>","plan":"- short bulleted\n- list that conveys\n- long-term plan"},"command":{"name":"<command name>","input":{"<name>":"<value>"}}}'
-]), 'system')
-
-PromptInstructionSection_py = TemplateSection(\
+PromptInstructionSection = TemplateSection(\
 """
 Reason step by step how to answer the users query below.
 Return a JSON object with your thoughts and the next command to perform, using the following format and available commands.
@@ -58,6 +53,8 @@ Response Format:
 {\"reasoning\":\"<reflections on how to construct an answerto the user query>\",\"plan\":\"concise plan for constructing answer\",\"command\":{\"name\":\"<command name of next action to perform>\",\"input\":{\"<key>\":\"<value>\"}}</s>"
 """
                                               , 'system')
+OneShot = [UserMessage('What is 3 + 4?'),
+           AssistantMessage('{"reasoning":"I\' not good at math, I\'ll use the math command", "command":{"name":"math", "input":{"code":3+4"}}')]
 
 @dataclass
 class AgentOptions:
@@ -282,13 +279,18 @@ class Agent(SchemaBasedCommand):
             sections = [agent_prompt]
             sections.append(AgentCommandSection(self._commands))
             pis = PromptInstructionSection
-            if not (self._options['prompt_options']['model']).lower().startswith('gpt'):
-                pis = PromptInstructionSection_py
             sections.append(pis)
-            prompt = Prompt([
-                GroupSection(sections, 'system'),
-                ConversationHistory(history_variable, 1.0, True)
-            ])
+            if OneShot is not None:
+                prompt = Prompt([
+                    GroupSection(sections, 'system'),
+                    OneShot[0], OneShot[1],
+                    ConversationHistory(history_variable, 1.0, True)
+                ])
+            else:
+                prompt = Prompt([
+                    GroupSection(sections, 'system'),
+                    ConversationHistory(history_variable, 1.0, True)
+                ])
             if input:
                 prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user'))
                 # Ensure input variable is set otherwise the history will be wrong.

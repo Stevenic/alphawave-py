@@ -10,6 +10,7 @@ import requests, socket
 from queue import Queue
 import json
 import sys
+import gc
 import time
 import string
 import traceback
@@ -118,8 +119,8 @@ class MyStreamer(TextIteratorStreamer):
 
   def on_finalized_text(self, text: str, stream_end: bool = False):
       """Put the new text in the queue. If the stream is ending, also put a stop signal in the queue."""
-      filtered_text = filter(lambda x: x in string.printable, text)
-      self.text_queue.put(text, timeout=self.timeout)
+      filtered_text = "".join(filter(lambda x: x in string.printable, text))
+      self.text_queue.put(filtered_text, timeout=self.timeout)
       if stream_end:
         self.text_queue.put(self.stop_signal, timeout=self.timeout)
 
@@ -268,12 +269,12 @@ def server(model=None, tokenizer=None, pipeline=None, stop_str=[]):
             while True:
                 try:
                     conn = None
-                    server_socket.listen(10)
+                    server_socket.listen(30)
                     #print("waiting...")
                     try:
                       conn, address = server_socket.accept()  # accept new connection
                     except Exception:
-                      pass
+                        pass
                     if conn is None: continue
                     print("Connection from: " + str(address))
                     query_string = ''
@@ -291,12 +292,18 @@ def server(model=None, tokenizer=None, pipeline=None, stop_str=[]):
                     if query_string is not None and len(query_string) > 0:
                         message_j = json.loads(query_string)
                         submit(query_string, model=model, tokenizer=tokenizer, pipeline=pipeline, stop_event=stop_event, conn=conn, stop_str=stop_str)
+                        gc.collect()
+                        torch.cuda.empty_cache()
                         print('sending termination')
                         conn.sendall(b'x00xff')
+                        time.sleep(0.5)
                     if conn is not None: conn.close()
                 except TimeoutError:
                   #traceback.print_exc()
-                  if conn is not None: conn.close()
+                    if conn is not None:
+                        conn.sendall(b'x00xff')
+                        time.sleep(0.5)
+                        conn.close()
                 except KeyboardInterrupt:
                   print("idle loop interrrupt")
                   traceback.print_exc()
@@ -304,6 +311,7 @@ def server(model=None, tokenizer=None, pipeline=None, stop_str=[]):
         print("resetting socket")
         server_socket.close()
       except BrokenPipeError:
+        traceback.print_exc()
         pass
       except KeyboardInterrupt:
         sys.exit(0)

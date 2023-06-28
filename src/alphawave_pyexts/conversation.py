@@ -462,12 +462,12 @@ register_conv_template(
 # ChatGPT default template
 register_conv_template(
     Conversation(
-        name="chatgpt",
+        name="gpt-3.5-turbo",
         system="",
         roles=("user", "assistant"),
         messages=(),
         offset=0,
-        sep_style=None,
+        sep_style=SeparatorStyle.NO_COLON_SINGLE,
         sep=None,
     )
 )
@@ -500,6 +500,7 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
         sep="<|im_end|>",
+        sep2='',
         stop_token_ids=[50278, 0],
     )
 )
@@ -515,6 +516,7 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
         sep="\n",
+        sep2='',
         stop_token_ids=[50278, 0],
     )
 )

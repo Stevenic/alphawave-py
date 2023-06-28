@@ -20,7 +20,7 @@ client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 #model = 'vicuna_v1.1'
 #model ='guanaco'
 #model='mpt_instruct'
-model='chatglm2'
+model=input('PromptTemplate? ')
 initial_prompt = \
 """
 Hi! I'm here to help.
@@ -29,7 +29,7 @@ Hi! I'm here to help.
 agent_options = AgentOptions(
     client = client,
     prompt=[
-        "You are a helpful information bot, willing to dig deep to answer questions"
+        "You are a helpful information bot "
     ],
     prompt_options=PromptCompletionOptions(
         completion_type = 'chat',
@@ -38,14 +38,7 @@ agent_options = AgentOptions(
         max_input_tokens = 1200,
         max_tokens = 800,
     ),
-    initial_thought={
-        "reasoning": "I don't know the users needs",
-        "plan": "- use the ask command to ask the user what problem I can help with",
-        "command": {
-            "name": "ask",
-            "input": {"question": initial_prompt}
-        }
-    },
+    initial_thought=None,
     step_delay=3000,
     max_steps=50,
     logRepairs=True

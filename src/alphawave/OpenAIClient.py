@@ -154,6 +154,7 @@ class OpenAIClient(PromptCompletionClient):
         for key in keys:
             if jsonbody[key] is None:
                 del jsonbody[key]
+        print(jsonbody)
         result = self._session.post(url, json=jsonbody, headers=requestHeaders)
         if result.status_code < 300:
             completion = result.json().get('choices')[0]
