@@ -94,7 +94,7 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
             ### conv.system is a prompt msg, and will be inserted as the first entry by conv.get_prompt()
             if role.lower() == 'system' and msg_idx==0:
                 if len(conv.system)>0:
-                    prime = msg['content']+' '+conv.system
+                    prime = conv.system+'\n'+msg['content']
                 else:
                     prime = msg['content']
                 if len(conv.roles)>2:

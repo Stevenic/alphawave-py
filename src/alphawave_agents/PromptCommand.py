@@ -43,6 +43,8 @@ class PromptCommand(SchemaBasedCommand):
     async def execute(self, input: Dict[str, Any], memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> Union[TaskResponse, str]:
         # Fork memory and copy the input into the fork
         fork = MemoryFork(memory)
+        if type(input) != dict:
+            print (f'***** PromptCommand execute input not dict\n{input}\n')
         for key, value in input.items():
             fork.set(key, value)
 

@@ -31,7 +31,7 @@ class AgentThought:
     thoughts: Dict[str, str]
     command: Dict[str, Any]
 
-AgentThoughtSchema: Dict[str,str] = {
+"""AgentThoughtSchema: Dict[str,str] = {
     "type": "object",
     "properties": {
         "thoughts": {
@@ -54,20 +54,33 @@ AgentThoughtSchema: Dict[str,str] = {
     },
     "required": ["thoughts", "command"]
 }
+"""
 
-AgentThoughtSchema_py: Dict[str,str] = {
+AgentThoughtSchemaJSON: Dict[str,str] = {
     "type": "object",
     "properties": {
         "reasoning": {"type": "string"},
-        "plan": {"type": "string"},
         "command": {
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "input": {"type": "object"}
+                "inputs": {"type": "object"}
                 },
             "required": ["name"]
         }
     },
-    "required": ["reasoning", "plan", "command"]
+    "required": ["reasoning", "command"]
 }
+
+AgentThoughtSchemaTOML = {
+    "reasoning": {"type": "string",
+                  "required":True},
+    "command": {
+        "type": 'dict',
+        "schema": {
+            "name": {"type": "string", "required":True},
+            "inputs": {"type": "string"}
+        }
+    }
+}
+

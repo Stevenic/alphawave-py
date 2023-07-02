@@ -15,7 +15,7 @@ class CommandSchema(sbcCommandSchema):
     properties: dict = field(default_factory=lambda: {
         "answer": {
             "type": "string",
-            "description": "final answer"
+            "description": "answer to show user"
         }
     })
     required: list[str] = field(default_factory=lambda: ["answer"])
@@ -31,8 +31,5 @@ class FinalAnswerCommand(SchemaBasedCommand):
 
     def execute(self, input: FinalAnswerCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
         print(f'\nAnswer: \n{input}\n')
-        return {
-            "type": "TaskResponse",
-            "status": "input_needed",
-            "message": "input['answer']"
-        }
+        return_msg = {"type": "TaskResponse", "status": "input_needed", "message": input['answer'] }
+        return return_msg

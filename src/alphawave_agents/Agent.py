@@ -26,7 +26,7 @@ from alphawave.JSONResponseValidator import JSONResponseValidator
 from alphawave_agents.SchemaBasedCommand import SchemaBasedCommand, CommandSchema
 from alphawave_agents.AgentCommandValidator import AgentCommandValidator
 import promptrix.Utilities
-from alphawave_agents.agentTypes import Command, AgentThought, AgentThoughtSchema
+from alphawave_agents.agentTypes import Command, AgentThought
 from alphawave_agents.AgentCommandSection import AgentCommandSection
 
 from typing import Dict, Any
@@ -44,17 +44,7 @@ class AgentCommandSchema(BaseModel):
     }
     required: list[str] = ["input"]
 
-PromptInstructionSection = TemplateSection(\
-"""
-Reason step by step how to answer the users query below.
-Return a JSON object with your thoughts and the next command to perform, using the following format and available commands.
-Response Format:
 
-{\"reasoning\":\"<reflections on how to construct an answerto the user query>\",\"plan\":\"concise plan for constructing answer\",\"command\":{\"name\":\"<command name of next action to perform>\",\"input\":{\"<key>\":\"<value>\"}}</s>"
-"""
-                                              , 'system')
-OneShot = [UserMessage('What is 3 + 4?'),
-           AssistantMessage('{"reasoning":"I\' not good at math, I\'ll use the math command", "command":{"name":"math", "input":{"code":3+4"}}')]
 
 @dataclass
 class AgentOptions:
@@ -75,7 +65,7 @@ class AgentOptions:
     retry_invalid_responses: Optional[bool] = None
     step_delay: Optional[int] = None
     tokenizer: Optional[Tokenizer] = None
-
+    syntax: Optional[str] = 'JSON'
 
 @dataclass
 class ConfiguredAgentOptions:
@@ -96,12 +86,35 @@ class ConfiguredAgentOptions:
     retry_invalid_responses: bool = False
     step_delay: int = 5
     tokenizer: Tokenizer = None
+    syntax: Optional[str] = 'JSON'
 
-def update_dataclass(instance, **kwargs):
-    for key, value in kwargs.items():
+def update_dataclass(instance, source):
+    for key, value in source.items():
         if key in instance and value is not None:
             instance[key] =  value
 
+##
+PromptInstructionSectionJSON = TemplateSection(\
+"""
+Reason step by step how to answer the users query below.
+Return a JSON object with your reasoning and the next command to perform, using the following format and available commands.
+Response Format:
+
+{"reasoning":"<concise record of reasoning on how to construct an answer to the user query>","command":{"name":"<command name of next command to perform>","inputs":{"<key>":"<value>"}}}</s>"
+"""
+                                              , 'system')
+
+PromptInstructionSectionTOML = TemplateSection(\
+"""
+Reason step by step how to answer the users query below.
+Using the following format to respond:
+[RESPONSE]
+reasoning="<concise reasoning about user query>"
+command.name=\"<command name of next command to perform>\"
+command.inputs=\"<input for command>\"
+[STOP]\n"
+Respond with your reasoning and the next command to perform, using the above format"""
+                                              , 'system')
 
 @dataclass
 class AgentCommandInput:
@@ -138,8 +151,10 @@ class Agent(SchemaBasedCommand):
             'retry_invalid_responses': False,
             'step_delay': 5,
             'tokenizer': GPT3Tokenizer(),
+            'syntax': 'JSON'
         }
-        update_dataclass(self._options, **asdict(options))
+        update_dataclass(self._options, options.__dict__)
+        #self._options = self._options.__dict__
         self._events: EventEmitter = AsyncIOEventEmitter()
 
     @property
@@ -206,12 +221,10 @@ class Agent(SchemaBasedCommand):
 
         # Start main task loop
         while step < self.options['max_steps']:
-            # Wait for step delay
-            
-            if step > 0 and self.options['step_delay'] > 0:
+            # Wait for step delay to prevent gpt overrun
+            if step > 0 and self._options['step_delay'] > 0:
                 sys.stdout.flush()
-                await asyncio.sleep(self.options['step_delay']/1000)
-
+                await asyncio.sleep(self._options['step_delay']/1000)
             # Execute next step
             result = await self.execute_next_step(stepInput, agentId, executeInitialThought)
             if isinstance(result, str):
@@ -221,7 +234,6 @@ class Agent(SchemaBasedCommand):
 
             step += 1
             executeInitialThought = False
-
         # Return too many steps
         return {
             "type": "TaskResponse",
@@ -235,6 +247,7 @@ class Agent(SchemaBasedCommand):
     # Agent as Commands
     async def execute(self, input: AgentCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer):
         # Initialize the agents state
+        print(f'***** Agent execute input {input}')
         agentId = input.agentId
         state = self.get_agent_state(agentId)
         state['context'] = input.input
@@ -260,8 +273,8 @@ class Agent(SchemaBasedCommand):
 
     async def execute_next_step(self, input: Optional[str] = None, agent_id: Optional[str] = None, execute_initial_thought: bool = False):
         try:
+            print(f'***** Agent execute_next_step input {input}')
             state = self.get_agent_state(agent_id)
-
             # Create agents prompt section
             if isinstance(self._options['prompt'], list):
                 agent_prompt = TemplateSection('\n'.join(self._options['prompt']), 'system')
@@ -276,26 +289,26 @@ class Agent(SchemaBasedCommand):
 
             # Create prompt
             history_variable = self.get_agent_history_variable(agent_id)
-            sections = [agent_prompt]
-            sections.append(AgentCommandSection(self._commands))
-            pis = PromptInstructionSection
-            sections.append(pis)
-            if OneShot is not None:
+            try:
+                sections = [agent_prompt]
+                sections.append(AgentCommandSection(self._commands))
+                
+                if self._options['syntax'] == 'JSON':
+                    pis = PromptInstructionSectionJSON
+                else:
+                    pis = PromptInstructionSectionTOML
+                    
+                sections.append(pis)
                 prompt = Prompt([
                     GroupSection(sections, 'system'),
-                    OneShot[0], OneShot[1],
                     ConversationHistory(history_variable, 1.0, True)
                 ])
-            else:
-                prompt = Prompt([
-                    GroupSection(sections, 'system'),
-                    ConversationHistory(history_variable, 1.0, True)
-                ])
-            if input:
-                prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user'))
-                # Ensure input variable is set otherwise the history will be wrong.
-                self.memory.set(self.options['input_variable'], input)
-
+                if input:
+                    prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user'))
+                    # Ensure input variable is set otherwise the history will be wrong.
+                    self.memory.set(self.options['input_variable'], input)
+            except Exception as e:
+                tracebak.print_exc()
 
             if execute_initial_thought and self._options['initial_thought']:
                 # Just use initial thought as response
@@ -313,8 +326,8 @@ class Agent(SchemaBasedCommand):
                     self.memory.set(history_variable, history)
 
                 # Create command validator
-                validator = AgentCommandValidator(self._commands, self._options['prompt_options']['model'])
-
+                ### this is the ONLY wave call in Agent. 
+                validator = AgentCommandValidator(self._commands, self._options['prompt_options'].model, self._options['syntax'])
                 # Create a wave for the prompt
                 wave = AlphaWave(
                     client = self._options['client'],
@@ -350,6 +363,8 @@ class Agent(SchemaBasedCommand):
             message = response['message']
             thought = message['content']
             self._events.emit('newThought', thought)
+            print(f'***** Agent execute_next_step calling execute_command state {state}, thought {thought}')
+
             result = await self.execute_command(state, thought)
 
             # Check for task result and error
@@ -381,14 +396,14 @@ class Agent(SchemaBasedCommand):
 
     async def execute_command(self, state: AgentState, thought: AgentThought):
         # Get command
-        command_name = thought['command']['input']['name'] if thought['command']['name'] == 'character' else thought['command']['name']
+        command_name = thought['command']['inputs']['name'] if thought['command']['name'] == 'character' else thought['command']['name']
         command = self._commands.get(command_name, None) or {}
-        input = thought['command']['input'] or {}
+        input = thought['command']['inputs'] or {}
         if isinstance(command, Agent):
             # Pass control to child agent
             agentId = str(uuid4())
             childAgent = command
-            response = await childAgent.execute(input['input'], self.memory, self.functions, self.tokenizer)
+            response = await childAgent.execute(input['inputs'], self.memory, self.functions, self.tokenizer)
             if response.status == 'success':
                 # Just return the response message since agent completed without additional input
                 return response.message
@@ -404,6 +419,7 @@ class Agent(SchemaBasedCommand):
                 return response
         else:
             # Execute command and return result
+            print(f'***** Agent execute_command  {command_name}, {input}')
             response = command.execute(input, self.memory, self.functions, self.tokenizer)
             if 'coroutine' in str(type(response)).lower():
                 return await response

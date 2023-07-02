@@ -16,12 +16,16 @@ def extract_json_template(schema, p=True):
                 if value["type"] == "object":
                     template[key] = extract_json_template(value, p=False)
                 elif value["type"] == "array":
-                    if "items" in value:
+                    if 'description' in value:
+                        template[key] = '['+value['description']+']'
+                    elif "items" in value:
                         template[key] = [extract_json_template(value["items"], p=False)]
                     else:
-                        template[key] = {}
-                else:
-                    template[key] = '<'+key+'>'
+                        template[key] = []
+                else:   # plain old string value
+                    if 'description' in value:
+                        template[key] = value['description']
+                    else: template[key] = '<'+key+'>'
             elif "$ref" in value:
                 ref = value["$ref"]
                 ref_schema = schema
@@ -29,7 +33,9 @@ def extract_json_template(schema, p=True):
                     ref_schema = ref_schema[part]
                 template[key] = extract_json_template(ref_schema, p=False)
 
-    return template
+    if p:
+        pass #print(json.dumps(template))
+    return json.dumps(template)
 
 class JSONResponseValidator(PromptResponseValidator):
     def __init__(self, schema=None, missing_json_feedback='Invalid JSON. return valid JSON.'):
@@ -41,22 +47,26 @@ class JSONResponseValidator(PromptResponseValidator):
             return s
         # Try to parse as JSON
         try:
-            return json.loads(s)
-        except json.JSONDecodeError:
-            pass
+            s = json.loads(s)
+            return s
+        except json.JSONDecodeError as e:
+           pass
         
         # Try to parse as a Python literal
         try:
-            return ast.literal_eval(s)
-        except (SyntaxError, ValueError):
+            sast = ast.literal_eval(s)
+            sast = re.sub(r"'([^\"']+)':", r'"\1":', str(sast)) # keys as doublequote
+            s=sast
+            sastj = json.loads(sast)
+            return sast
+        except (SyntaxError, ValueError) as e:
             pass
 
         # Try to repair common errors and parse again
         s = s.strip()
         if not (s.startswith('{') and s.endswith('}')):
             s = '{' + s + '}'
-        s = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', s)  # add quotes around keys
-        #s = s.replace("'", '"')  # replace single quotes with double quotes
+        s = re.sub(r"'([^\"']+)':", r'"\1":', s) # keys as doublequote
 
         # Try to parse the repaired string
         try:
@@ -69,9 +79,16 @@ class JSONResponseValidator(PromptResponseValidator):
         message = response['message']
         
         text = message if isinstance(message, str) else message.get('content', '')
-
+        #print(f'***** JSONResponseValidator input {text}')
         # Parse the response text
+        text = re.sub('\n+', '\n', text)
+        cleaned_text = ""
+        for char in text:
+            if ord(char) >= 10:
+                cleaned_text += char
+        text = cleaned_text
         parsed=[]
+        #print(f'***** JSONResponseValidator cleaned \n{text}\n')
         try:
             parsed = Response.parse_all_objects(text)
         except Exception as e:
@@ -87,8 +104,9 @@ class JSONResponseValidator(PromptResponseValidator):
 
         # Validate the response against the schema
         if self.schema:
+            #print(f'***** JSONResponseValidator schema {self.schema}')
             errors = None
-            for i in range(len(parsed) - 1, -1, -1):
+            for i in range(len(parsed)):  # return first one that passes
                 obj = parsed[i]
                 try:
                     try:
@@ -107,7 +125,7 @@ class JSONResponseValidator(PromptResponseValidator):
                     if not errors:
                         errors = e
                     template = extract_json_template(self.schema)
-                    #print(f'***** JSONResponseValidator ValidationError exception {str(e)}')
+                    #print(f'***** JSONResponseValidator ValidationError exception {str(e)}\n{self.schema}\n')
                     return {
                         'type': 'Validation',
                         'valid': False,
@@ -115,7 +133,7 @@ class JSONResponseValidator(PromptResponseValidator):
                     }
                 except Exception as e:
                     template = extract_json_template(self.schema)
-                    #print(f'***** JSONResponseValidator validator generic exception {str(e)}')
+                    #print(f'***** JSONResponseValidator validator generic exception {str(e)}\n{self.schema}')
                     return {
                         'type': 'Validation',
                         'valid': False,

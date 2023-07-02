@@ -82,6 +82,7 @@ class AlphaWave(AsyncIOEventEmitter):
                 return response
 
             if not isinstance(response['message'], dict):
+                #print(f'***** Alphawave making sure message is a dict with key content')
                 response['message'] = {'role': 'assistant', 'content': response['message'] or ''}
 
             self.emit('beforeValidation', memory, functions, tokenizer, response, max_repair_attempts)
@@ -101,8 +102,8 @@ class AlphaWave(AsyncIOEventEmitter):
                 print(Colorize.title('REPAIRING RESPONSE:'))
                 print(Colorize.output(memory))
             fork = MemoryFork(memory)
-            self.addInputToHistory(fork, history_variable, input)
-            self.addResponseToHistory(fork, history_variable, response['message'])
+            #self.addInputToHistory(fork, history_variable, input)
+            #self.addResponseToHistory(fork, history_variable, response['message'])
 
             if self.options.logRepairs:
                 print(Colorize.output(response['message']['content']))

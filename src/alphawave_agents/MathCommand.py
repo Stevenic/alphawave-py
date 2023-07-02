@@ -17,13 +17,7 @@ class CommandSchema(sbcCommandSchema):
 @dataclass
 class MathCommandInput:
     code:str
-"""
-class TaskResponse:
-    def __init__(self, response_type: str, status: str, message: str):
-        self.type = response_type
-        self.status = status
-        self.message = message
-"""
+
 schema = CommandSchema(
     schema_type="object",
     title="math",
@@ -45,7 +39,12 @@ class MathCommand(SchemaBasedCommand):
 
     def execute(self, input: MathCommandInput, memory: Any, functions: Any, tokenizer: Any) -> Any:
         try:
-            return eval(input['code'])
+            exp = input['code']
+            exp = exp.replace('\\*', '*')
+            exp = exp.replace('\\+', '+')
+            exp = exp.replace('\\-', '-')
+            exp = exp.replace('\\/', '/')
+            return eval(exp)
         except Exception as err:
             message = str(err)
             return asdict(TaskResponse('TaskResponse', 'error', message))

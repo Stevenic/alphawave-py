@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional
 from promptrix.promptrixTypes import PromptFunctions, PromptMemory, Tokenizer, Message, RenderedPromptSection
 from promptrix.PromptSectionBase import PromptSectionBase
 from alphawave_agents.agentTypes import Command
-
+import traceback
 
 class AgentCommandSection(PromptSectionBase):
     def __init__(self, commands: Dict[str, Command], tokens: int = -1, required: bool = True):
@@ -11,7 +11,7 @@ class AgentCommandSection(PromptSectionBase):
         self._commands = commands
         self.tokens = tokens
         self.required = required
-
+        
     async def renderAsMessages(self, memory: Any, functions: Any, tokenizer: Any, max_tokens: int) -> Dict[str, Any]:
         # Render commands to message content
         content = 'commands:\n'
@@ -24,7 +24,11 @@ class AgentCommandSection(PromptSectionBase):
                 content += f'\t\toutput: {command.output}\n'
 
         # Return as system message
-        length = len(tokenizer.encode(content))
-        result = self.return_messages([{'role': 'system', 'content': content}], length, tokenizer, max_tokens)
+        result = None
+        try:
+            length = len(tokenizer.encode(content))
+            result = self.return_messages([{'role': 'system', 'content': content}], length, tokenizer, max_tokens)
+        except Exception as e:
+            traceback.print_exc()
         return result
 

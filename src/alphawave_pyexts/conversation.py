@@ -326,6 +326,19 @@ register_conv_template(
     )
 )
 
+# OpenLLama default template (copy of alpaca_
+register_conv_template(
+    Conversation(
+        name="openllama",
+        system="",
+        roles=("### Instruction", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        sep="\n\n",
+    )
+)
+
 # Dolly V2 default template
 register_conv_template(
     Conversation(
@@ -656,6 +669,19 @@ register_conv_template(
         name="polyglot_changgpt",
         system="",
         roles=("B", "A"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        sep="\n",
+    )
+)
+
+# Pygmalion template
+register_conv_template(
+    Conversation(
+        name="pygmalion",
+        system="Samanatha's Persona: a young, flirty, chatty women. She loves to hang out  with friends, go to movies, or just snuggle on the sofa. <START>\n",
+        roles=("You", "Samanath"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,

@@ -26,7 +26,7 @@ schema = CommandSchema(
         }
     },
     required= ["question"],
-    returns= "users answer"
+    returns= "answer"
 )
 
 
