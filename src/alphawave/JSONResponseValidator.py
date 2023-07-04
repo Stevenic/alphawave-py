@@ -46,33 +46,41 @@ class JSONResponseValidator(PromptResponseValidator):
         if s is None:
             return s
         # Try to parse as JSON
+        # Try to repair common errors and parse again
+        s = s.strip()
+        if not (s.startswith('{') and s.endswith('}')):
+            s = '{' + s + '}'
+        s = re.sub(r"'([^\"']+)':", r'"\1":', s) # keys as doublequote
+        s = s.replace('\\*', '*')
+        s = s.replace('\\+', '+')
+        s = s.replace('\\-', '-')
+        s = s.replace('\\/', '/')
         try:
             s = json.loads(s)
+            #print(f'***** JSONReponseValidator parse_dict json.loads success')
             return s
         except json.JSONDecodeError as e:
            pass
         
         # Try to parse as a Python literal
         try:
-            sast = ast.literal_eval(s)
-            sast = re.sub(r"'([^\"']+)':", r'"\1":', str(sast)) # keys as doublequote
-            s=sast
+            #sq = re.sub(r"'(.*?)':", r'"\1"', s) # keys must be double quoted
+            sast = ast.literal_eval(sq)
+            #print(f'***** JSONReponseValidator parse_dict sast {s}')
             sastj = json.loads(sast)
+            #print(f'***** JSONReponseValidator parse_dict ast then re then loads success')
             return sast
         except (SyntaxError, ValueError) as e:
             pass
 
-        # Try to repair common errors and parse again
-        s = s.strip()
-        if not (s.startswith('{') and s.endswith('}')):
-            s = '{' + s + '}'
-        s = re.sub(r"'([^\"']+)':", r'"\1":', s) # keys as doublequote
 
         # Try to parse the repaired string
         try:
             y = json.loads(s)
+            #print(f'***** JSONReponseValidator parse_dict final loads success {y}')
             return y
         except json.JSONDecodeError:
+            #print(f'***** JSONReponseValidator parse_dict final return {s}')
             return s
 
     def validate_response(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, response: PromptResponse, remaining_attempts: int) -> Validation:
@@ -91,6 +99,7 @@ class JSONResponseValidator(PromptResponseValidator):
         #print(f'***** JSONResponseValidator cleaned \n{text}\n')
         try:
             parsed = Response.parse_all_objects(text)
+            #print(f'***** JSONResponseValidator Response parse \n{parsed}\n')
         except Exception as e:
             raise e
         if len(parsed) == 0:
@@ -99,7 +108,7 @@ class JSONResponseValidator(PromptResponseValidator):
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_json_feedback+f' using this template: {template} '
+                'feedback': self.missing_json_feedback+f' using this template:\n{template}\n'
             }
 
         # Validate the response against the schema
@@ -110,11 +119,13 @@ class JSONResponseValidator(PromptResponseValidator):
                 obj = parsed[i]
                 try:
                     try:
+                        #print(f'***** JSONResponseValidator before parse_dict {type(obj)}\n{obj}\n')
                         obj = self.parse_dict(obj) if type(obj) == str else obj
+                        #print(f'***** JSONResponseValidator after parse_dict {type(obj)} \n{parsed}\n')
                     except Exception as e:
                         pass
                     validate(obj, self.schema)
-                    #print(f'***** JSONResponseValidator validation passed!')
+                    #print(f'***** JSONResponseValidator validation passed! {type(obj)}, {obj}')
                     return {
                         'type': 'Validation',
                         'valid': True,
@@ -129,7 +140,7 @@ class JSONResponseValidator(PromptResponseValidator):
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. respond using this template: {template} '
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. respond using this template:\n{template}\n'
                     }
                 except Exception as e:
                     template = extract_json_template(self.schema)
@@ -137,16 +148,16 @@ class JSONResponseValidator(PromptResponseValidator):
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. respond using this template: {template} '
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. respond using this template:\n{template}\n'
                     }      
     
         else:
             # Return the last object
-            #print(f'***** JSONResponseValidator exit last object {parsed[-1]}')
+            #print(f'***** JSONResponseValidator validate couldnt find a valid form')
             return {
                 'type': 'Validation',
-                'valid': True,
-                'value': parsed[-1]
+                'valid': False,
+                'feedback': self.missing_json_feedback+f' using this template:\n{template}\n'
             }
 
     def get_error_fix(self, error: ValidationError) -> str:

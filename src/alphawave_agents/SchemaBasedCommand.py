@@ -74,7 +74,7 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
                     'value': cleaned
                 }
             except ValidationError as e:
-                print(f'***** SchemaBasedCommand validate fail {str(e)}\n')
+                #print(f'***** SchemaBasedCommand validate fail {str(e)}\n')
                 errors = f'"{e.path[0] if e.path else "inputs"}": {e.message}'
                 message = errors
                 if 'is a required property' in message:
@@ -104,7 +104,7 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
                         except:
                             pass
                     if inputs_as_dict is None:
-                        print(f'***** SchemaBasedCommand validate TOML inputs convert to dict fail')
+                        #print(f'***** SchemaBasedCommand validate TOML inputs convert to dict fail')
                         return {
                             'type': 'Validation',
                             'valid': False,
@@ -161,3 +161,24 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
                 pass
 
         return cleaned
+
+    def one_shot(self, syntax):
+        content=''
+        if syntax == 'JSON':
+            content += '\t\tformat: {'+f'"reasoning":"<concise reasons to use {self.title}>","command":'+f'"{self.title}", "inputs":'+'{'
+            args = ''
+            for arg in self.inputs.split(','):
+                key = (arg.split(':'))[0].strip().strip('"\'') # strip key down to bare alpha key (':' elims type info)
+                content += f'"{key}": "<value for {key}>",'
+                content = content[:-1]+'}}\n' # strip final comma 
+            #print(f'***** AgentCommandSection one-shot prompt: {content}\n')
+            return content
+        else:
+            content += f'\t\tformat:\n[RESPONSE]\nreasoning="<concise reasons to use {self.title}>"\ncommand="{self.title}"\n'
+            args = ''
+            for arg in self.inputs.split(','):
+                key = 'inputs.'+(arg.split(':'))[0].strip().strip('"\'') # strip key down to bare alpha key (':' elims type info)
+                content += f'{key}="<value for {key}>"\n'
+                content +='[STOP]\n'
+            #print(f'***** AgentCommandSection one-shot TOML: {content}\n')
+            return content

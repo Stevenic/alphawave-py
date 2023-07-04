@@ -150,17 +150,22 @@ async def get_search_phrase_and_keywords(client, query_string, model, memory, fu
       'returns':"query answer"
     }
 
-    options = PromptCompletionOptions(completion_type='chat', model=model)
-    response = await run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
-
-    if type(response) == dict and 'status' in response and response['status'] == 'success':
-        content = response['message']['content']
-        if type(content) == dict:
-            phrase = content['Phrase']
-            keywords = content['Keywords']
-            return phrase, keywords
-    else:
-        return response, []
+    phrase = ''; keywords = []
+    try:
+        options = PromptCompletionOptions(completion_type='chat', model=model)
+        response = await run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
+        
+        if type(response) == dict and 'status' in response and response['status'] == 'success':
+            content = response['message']['content']
+            if type(content) == dict:
+                if 'Phrase' in content:
+                    phrase = content['Phrase']
+                if 'Keywords' in content:
+                    keywords = content['Keywords']
+                return phrase, keywords
+    except Exception as e:
+        traceback.print_exc()
+    return phrase, keywords
 
 
 def reform(elements):

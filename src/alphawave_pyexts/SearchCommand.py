@@ -60,9 +60,9 @@ class SearchCommand(SchemaBasedCommand):
                             sc_text += '\n'+(item['text'])
                     sc_text = sc_text[:max(len(sc_text)-1, self.max_chars)]
                 if self.return_urls:
-                    return {'status':'success', 'message':{'text': sc_text, 'urls':sc_urls}}
+                    return {'type':'TaskResponse','status':'success', 'message':{'text': sc_text, 'urls':sc_urls}}
                 else:
-                    return {'status':'success', 'message':sc_text}
+                    return {'type':'TaskResponse','status':'success', 'message':sc_text}
                     
         except Exception as err:
             message = str(err)

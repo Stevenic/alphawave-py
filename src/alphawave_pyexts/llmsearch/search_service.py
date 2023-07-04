@@ -22,6 +22,7 @@ async def run_chat(client, query_string, model,  memory, functions, tokenizer, m
 
     google_text=\
       await gs.search_google(query_string, gs.QUICK_SEARCH, query_phrase, keywords, client, model, fork, functions, tokenizer, max_chars)
+    print(f'***** search_service result {google_text}')
     return google_text
   except:
     traceback.print_exc()

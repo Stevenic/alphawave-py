@@ -59,7 +59,7 @@ async def process_url(query_phrase, keywords, keyword_weights, url, timeout, cli
             options.add_argument("--headless")
             result = ''
             with webdriver.Chrome(options=options) as dr:
-                #print(f'*****setting page load timeout {timeout}')
+                #print(f'*****setting page load timeout {timeout} {url}')
                 dr.set_page_load_timeout(timeout)
                 try:
                     dr.get(url)
@@ -94,9 +94,9 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
                     url = urls[0]
                     urls = urls[1:]
                     # set timeout so we don't wait for a slow site forever
-                    timeout = 12-int(time.time()-start_time)
+                    timeout = 24-int(time.time()-start_time)
                     if search_level==NORMAL_SEARCH:
-                        timeout = timeout+4
+                        timeout = timeout+8
                     future = executor.submit(process_url, query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars)
                     in_process.append(future)
                 # Process the responses as they arrive
@@ -104,9 +104,9 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
                     if future.done():
                         in_process.remove(future)
                         try:
-                            result, url = await asyncio.wait_for(future.result(), timeout=(max (1, (12-(time.time()-start_time)))))
+                            result, url = await asyncio.wait_for(future.result(), timeout=(max (1, (32-(time.time()-start_time)))))
                         except asyncio.TimeoutError:
-                            print('timeout')
+                            #print(f'timeout ')
                             continue
                         if 'coroutine' in str(type(result)).lower():
                             result = await result
@@ -195,36 +195,51 @@ def log_url_process(site, reason, raw_text, extract_text, gpt_text):
 
 async def llm_tldr (text, query, client, model, memory, functions, tokenizer, max_chars):
     text = text[:max_chars] # make sure we don't run over token limit
-    prompt = Prompt([UserMessage('Analyze the following Text to identify if there is any content relevant to the query {{$query}}, Respond using this JSON template:\n\n{"relevant": True if there is any text found in the input that is relevant to the query, False otherwise>, "tldr": <relevant content found in Text, rewritten as needed for coherence, or "" if nothing found>}\n\nText:\n\n{{$input}}\n\n. ')])
+    prompt = Prompt([UserMessage('Analyze the following Text to identify if there is any content relevant to the query {{$query}}, Respond using this JSON template:\n\n{"relevant": "Yes" if there is any text found in the input that is relevant to the query, "No" otherwise>, "tldr": "<relevant content found in Text, rewritten coherence>"}\n\nText:\n{{$input}}\n. ')])
     response_text=''
     completion = None
     schema = {
-        'schema_type':'object',
-        'title':'tldr',
-        'description':'extract query-relevant text',
-        'properties':{
-            'relevant': {
-                'type': 'boolean',
-                'description': 'True if there is any text found in the input that is relevant to the query, otherwise False'
+        "schema_type":"object",
+        "title":"tldr",
+        "description":"extract query-relevant text",
+        "properties":{
+            "relevant": {
+                "type": "string",
+                "description": "Yes if any relevant text, otherwise No"
             },
-            'tldr': {
-                'type': 'string',
-                'description': 'relevant extract from Text, or empty string'
+            "tldr": {
+                "type": "string",
+                "description": "relevant extract from Text, or empty string"
             }
         },
-        'required':['relevant', 'tldr'],
-        'returns':"extract"
+        "required":["relevant", "tldr"],
+        "returns":"extract"
     }
     
     options = PromptCompletionOptions(completion_type='chat', model=model)
     # don't clutter primary memory with tldr stuff
     fork = MemoryFork(memory)
     response = await ut.run_wave(client, {'input':text, 'query':query}, prompt, options, fork, functions, tokenizer, validator=JSONResponseValidator(schema))
+    #print(f'\n***** google llm_tldr processing \n{response}')
     if type(response) == dict and 'status' in response and response['status'] == 'success'and 'message' in response:
         message = response['message']
-        if type(message) == dict and 'content' in message and type(message['content']) == dict:
+        if type(message) != dict:
+            try:
+                message = json.loads(message)
+            except Exception as e:
+                if message.find('tldr')> 0:
+                    return message[message.find('tldr'):]
+                else:
+                    return ''
+        if 'content' in message:
             content = message['content']
-            if 'relevant' in content and content['relevant'] == True:
+            if type(content) !=  dict:
+                try:
+                    content = json.loads(content.strip())
+                except Exception as e:
+                    return ''
+            if 'relevant' in content and 'yes' in str(content['relevant']).lower() and 'tldr' in content:
+                #print(f"***** google llm_tldr\n{content['tldr']}\n")
                 return content['tldr']
     return ''
     

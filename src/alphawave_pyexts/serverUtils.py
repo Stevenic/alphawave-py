@@ -31,7 +31,7 @@ class StopOnTokens(StoppingCriteria):
       
       if stop_strs is not None and isinstance(stop_strs, Iterable):
         for stop_wd in stop_strs:
-          print(f'***** stop wd pre encode {stop_wd}')
+          #print(f'***** stop wd pre encode {stop_wd}')
           if stop_wd is not None:
             tokens = tokenizer.encode(stop_wd)
             self.stop_ids.append(tokens)
@@ -51,7 +51,7 @@ class StopOnTokens(StoppingCriteria):
       input_str = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
       for stop_str in self.stop_strs:
         if len(input_str)>self.prompt_len and stop_str in input_str[self.prompt_len:]:
-          print(f'***** stopping on string {stop_str}, {input_str}')
+          print(f'***** stopping on string {stop_str}, \n{input_str[self.prompt_len:]}')
           return True
       return False
     

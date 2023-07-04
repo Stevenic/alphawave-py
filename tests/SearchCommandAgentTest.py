@@ -11,7 +11,7 @@ from alphawave_agents.AskCommand import AskCommand
 from alphawave_agents.FinalAnswerCommand import FinalAnswerCommand
 
 # Create an OpenAI client
-search_client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
+search_client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 search_model = 'gpt-3.5-turbo'
 
 #create OS client
@@ -36,10 +36,10 @@ agent_options = AgentOptions(
         model = model,
         temperature = 0.1,
         max_input_tokens = 1200,
-        max_tokens = 800,
+        max_tokens = 200,
     ),
     initial_thought=None,
-    step_delay=3000,
+    step_delay=1000,
     max_steps=50,
     logRepairs=True
 )
@@ -48,7 +48,6 @@ agent_options = AgentOptions(
 agent = Agent(options = agent_options)
 
 # Add core commands to the agent
-agent.addCommand(AskCommand())
 agent.addCommand(SearchCommand(search_client, search_model))
 agent.addCommand(FinalAnswerCommand())
 

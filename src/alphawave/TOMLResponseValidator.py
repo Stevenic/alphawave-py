@@ -10,7 +10,7 @@ import re
 
 
 class TOMLResponseValidator(PromptResponseValidator):
-    def __init__(self, schema=None, missing_toml_feedback='Invalid TOML. return valid TOML.'):
+    def __init__(self, schema=None, missing_toml_feedback="Response was not formatted as expected. "):
         self.schema = schema
         self.missing_toml_feedback = missing_toml_feedback
         self.validator = Validator(schema)
@@ -31,19 +31,23 @@ class TOMLResponseValidator(PromptResponseValidator):
             if ord(char) >= 10:
                 cleaned_s += char
         s = cleaned_s
+        s = s.replace('\\*', '*')
+        s = s.replace('\\+', '+')
+        s = s.replace('\\-', '-')
+        s = s.replace('\\/', '/')
         s = s.replace('RESPONSE:', '[RESPONSE]')
         start = s.find('[RESPONSE]')
         if start < 0:
             #print(f'***** find_toml no start')
             return ''
-        end = s.find('[STOP]')
+        end = s[start:].find('[STOP]')
         if end < 0:
-            end = (s[start:]).find('[')
+            end = (s[start+1:]).find('[')
         if end < 0:
-            #print(f'***** find_toml {start} no end')
+            #print(f'***** find_toml {start} no end\n{s[start:]}')
             return s[start:]
         else:
-            #print(f'***** find_toml{start}, {end}')
+            #print(f'***** find_toml {start}, {end}\n{s[start:start+end-1]}')
             return s[start:start+end-1]
 
     def extract_toml_template(self,schema, prefix=None):
@@ -61,10 +65,13 @@ class TOMLResponseValidator(PromptResponseValidator):
                     key = prefix+"."+item
                 if type(value) == dict:
                     if 'type' in value and value['type'] == 'dict':
+                        #print(f'\n***** template dict {key},{value}')
                         # recurse on nested structure
-                        subtemplate = self.extract_toml_template(value['schema'], key)
-                        template = template+subtemplate
-                        
+                        if 'schema' in value:
+                            subtemplate = self.extract_toml_template(value['schema'], key)
+                            template = template+subtemplate
+                        elif 'keysrules' in value:
+                            template = template+key+"={}\n"
                     elif 'meta' in value:
                         template = template+key+'="'+value['meta']+'"\n'
                     elif 'type' in value:
@@ -88,11 +95,11 @@ class TOMLResponseValidator(PromptResponseValidator):
             traceback.print_exc()
         #print(f'\n***** TOMLResponseValidator toml_extract \n{toml_extract}\n')
         if toml_extract == '':
-            print(f'***** TOMLResponseValidator failure no toml', file=sys.stderr)
+            #print(f'***** TOMLResponseValidator failure no toml', file=sys.stderr)
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_toml_feedback+f' using this template: {self.feedback_schema}'
+                'feedback': self.missing_toml_feedback+f' using this template:\n{self.feedback_schema}'
             }
 
         # Validate the response against the schema
@@ -101,11 +108,11 @@ class TOMLResponseValidator(PromptResponseValidator):
             response_as_dict = toml.loads(toml_extract)
             #print(f'\n***** TOMLResponseValidator as_dict \n{response_as_dict}\n')
         except TomlDecodeError as e:
-            print(f'***** TOMLResponseValidator TomlDecodeError {str(e)}\n{toml_extract}')
+            #print(f'***** TOMLResponseValidator TomlDecodeError {str(e)}\n{toml_extract}')
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': f'The TOML parse failed. e fixes:\n{str(e)}. respond using this template: {self.feedback_schema} '
+                'feedback': self.missing_toml_feedback+f' e fixes:\n{str(e)}. respond using this format:\n{self.feedback_schema} '
             }
 
         if self.schema:
@@ -121,18 +128,18 @@ class TOMLResponseValidator(PromptResponseValidator):
                         'value': response_as_dict['RESPONSE']
                     }
                 else:
-                    print(f'***** TOMLResponseValidator schema validation failed {v._errors}\n{response_as_dict}\n')
+                    #print(f'***** TOMLResponseValidator schema validation failed {v._errors}\n{response_as_dict}\n')
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The TOML returned had errors. Apply these fixes:\n{v._errors} response template: {self.feedback_schema}\n'
+                        'feedback': self.missing_toml_feedback+f'Apply these fixes:\n{v._errors} response template:\n{self.feedback_schema}\n'
                     }
             except Exception as e:
-                print(f'***** TOMLResponseValidator validator exception {str(e)}')
+                #print(f'***** TOMLResponseValidator validator exception {str(e)}')
                 return {
                     'type': 'Validation',
                     'valid': False,
-                    'feedback': f'The TOML returned had errors. repair and respond using this template: {self.feedback_schema} '
+                    'feedback': self.missing_toml_feedback+f'Repair and respond using this template:\n{self.feedback_schema} '
                 }      
     
         else:

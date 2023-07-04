@@ -96,24 +96,21 @@ def update_dataclass(instance, source):
 ##
 PromptInstructionSectionJSON = TemplateSection(\
 """
-Reason step by step how to answer the users query below.
-Return a JSON object with your reasoning and the next command to perform, using the following format and available commands.
-Response Format:
-
-{"reasoning":"<concise record of reasoning on how to construct an answer to the user query>","command":{"name":"<command name of next command to perform>","inputs":{"<key>":"<value>"}}}</s>"
+Reason about the user query following these instructions.
+If the answer is available from fact or reasoning, respond with the answer using the finalAnswer command
+Otherwise, reason step by step about the query, the available information, and the set of commands listed earlier, and select a command to perform.
+The ONLY commands available are the commands listed.
+Return a JSON object with your reasoning and the next command to perform, with arguments, using the format shown above for that command
 """
                                               , 'system')
 
 PromptInstructionSectionTOML = TemplateSection(\
 """
-Reason step by step how to answer the users query below.
-Using the following format to respond:
-[RESPONSE]
-reasoning="<concise reasoning about user query>"
-command.name=\"<command name of next command to perform>\"
-command.inputs=\"<input for command>\"
-[STOP]\n"
-Respond with your reasoning and the next command to perform, using the above format"""
+Reason about the user query following these instructions.
+If the answer is available from fact or reasoning, respond with the answer using the finalAnswer command.
+Otherwise, reason step by step about the query, the available information, and the set of commands listed above, and select a command to perform.
+Return your reasoning and the next command to perform, with arguments, using the format provided above for that command.
+"""
                                               , 'system')
 
 @dataclass
@@ -202,23 +199,6 @@ class Agent(SchemaBasedCommand):
         # Dispatch to child agent if needed
         step = 0
         state = self.get_agent_state(agentId)
-        if 'child' in state and state['child'] is not None:
-            childAgent = self.getCommand(state['child'].title)
-            
-            response = await childAgent.completeTask(input, state['child'].agentId)
-            if response.status != 'success':
-                return response
-
-            # Delete child and save state
-            del state.child
-            self.setAgentState(state, agentId)
-
-            # Use agents response as input to the next step
-            # We don't know how many steps the child agent took, so we'll just assume it took one
-            stepInput = response.message
-            step = 1
-            executeInitialThought = False
-
         # Start main task loop
         while step < self.options['max_steps']:
             # Wait for step delay to prevent gpt overrun
@@ -226,8 +206,9 @@ class Agent(SchemaBasedCommand):
                 sys.stdout.flush()
                 await asyncio.sleep(self._options['step_delay']/1000)
             # Execute next step
+            #print(f'***** Agent completeTask calling execute_next_step {stepInput}')
             result = await self.execute_next_step(stepInput, agentId, executeInitialThought)
-            if isinstance(result, str):
+            if isinstance(result, str): ## weird way to determining valid result!
                 stepInput = result
             else:
                 return result
@@ -247,7 +228,7 @@ class Agent(SchemaBasedCommand):
     # Agent as Commands
     async def execute(self, input: AgentCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer):
         # Initialize the agents state
-        print(f'***** Agent execute input {input}')
+        #print(f'***** Agent execute input {input}')
         agentId = input.agentId
         state = self.get_agent_state(agentId)
         state['context'] = input.input
@@ -273,7 +254,7 @@ class Agent(SchemaBasedCommand):
 
     async def execute_next_step(self, input: Optional[str] = None, agent_id: Optional[str] = None, execute_initial_thought: bool = False):
         try:
-            print(f'***** Agent execute_next_step input {input}')
+            #print(f'***** Agent execute_next_step input {input}')
             state = self.get_agent_state(agent_id)
             # Create agents prompt section
             if isinstance(self._options['prompt'], list):
@@ -291,7 +272,7 @@ class Agent(SchemaBasedCommand):
             history_variable = self.get_agent_history_variable(agent_id)
             try:
                 sections = [agent_prompt]
-                sections.append(AgentCommandSection(self._commands))
+                sections.append(AgentCommandSection(self._commands, one_shot=True, syntax=self._options['syntax']))
                 
                 if self._options['syntax'] == 'JSON':
                     pis = PromptInstructionSectionJSON
@@ -326,9 +307,10 @@ class Agent(SchemaBasedCommand):
                     self.memory.set(history_variable, history)
 
                 # Create command validator
-                ### this is the ONLY wave call in Agent. 
-                validator = AgentCommandValidator(self._commands, self._options['prompt_options'].model, self._options['syntax'])
+                validator = AgentCommandValidator(self._commands, self._options['client'], self._options['prompt_options'].model, self._options['syntax'], memory=self.memory, history_variable=history_variable)
+
                 # Create a wave for the prompt
+                ### this is the ONLY wave call in Agent. 
                 wave = AlphaWave(
                     client = self._options['client'],
                     prompt = prompt,
@@ -363,7 +345,7 @@ class Agent(SchemaBasedCommand):
             message = response['message']
             thought = message['content']
             self._events.emit('newThought', thought)
-            print(f'***** Agent execute_next_step calling execute_command state {state}, thought {thought}')
+            #print(f'***** Agent execute_next_step calling execute_command state {state}, thought {thought}')
 
             result = await self.execute_command(state, thought)
 
@@ -371,6 +353,7 @@ class Agent(SchemaBasedCommand):
             task_response = result if isinstance(result, dict) and result.get('type') == 'TaskResponse' else None
             if task_response:
                 if task_response['status'] in ['error', 'invalid_response', 'rate_limited', 'too_many_steps', 'too_long']:
+                    #print(f'***** Agent execute_next_step fail {task_response}')
                     return task_response
 
             # Update history
@@ -386,8 +369,11 @@ class Agent(SchemaBasedCommand):
             self.set_agent_state(state, agent_id)
 
             # Return result
-            return task_response if task_response else Utilities.to_string(self.tokenizer, result)
+            return_msg = task_response if task_response else Utilities.to_string(self.tokenizer, result)
+            #print(f'***** Agent execute_next_step returning {return_msg}')
+            return return_msg
         except Exception as err:
+            traceback_printexc()
             return {
                 'type': "TaskResponse",
                 'status': "error",
@@ -396,32 +382,13 @@ class Agent(SchemaBasedCommand):
 
     async def execute_command(self, state: AgentState, thought: AgentThought):
         # Get command
-        command_name = thought['command']['inputs']['name'] if thought['command']['name'] == 'character' else thought['command']['name']
+        command_name = thought['command']
         command = self._commands.get(command_name, None) or {}
-        input = thought['command']['inputs'] or {}
-        if isinstance(command, Agent):
-            # Pass control to child agent
-            agentId = str(uuid4())
-            childAgent = command
-            response = await childAgent.execute(input['inputs'], self.memory, self.functions, self.tokenizer)
-            if response.status == 'success':
-                # Just return the response message since agent completed without additional input
-                return response.message
-            elif response.status == 'input_needed':
-                # Remember that we're talking to the agent
-                state.child = {
-                    'title': command_name,
-                    'agentId': agentId
-                }
-                return response
-            else:
-                # Return the response since the agent failed
-                return response
-        else:
-            # Execute command and return result
-            print(f'***** Agent execute_command  {command_name}, {input}')
-            response = command.execute(input, self.memory, self.functions, self.tokenizer)
-            if 'coroutine' in str(type(response)).lower():
-                return await response
-            return response
+        input = thought['inputs'] or {}
+        # Execute command and return result
+        #print(f'***** Agent execute_command  {command_name}, {input}')
+        response = command.execute(input, self.memory, self.functions, self.tokenizer)
+        if 'coroutine' in str(type(response)).lower():
+            return await response
+        return response
 

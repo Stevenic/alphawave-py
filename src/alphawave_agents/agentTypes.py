@@ -31,56 +31,48 @@ class AgentThought:
     thoughts: Dict[str, str]
     command: Dict[str, Any]
 
-"""AgentThoughtSchema: Dict[str,str] = {
-    "type": "object",
-    "properties": {
-        "thoughts": {
-            "type": "object",
-            "properties": {
-                "thought": {"type": "string"},
-                "reasoning": {"type": "string"},
-                "plan": {"type": "string"}
-            },
-            "required": ["thought", "reasoning", "plan"]
-        },
-        "command": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "input": {"type": "object"}
-            },
-            "required": ["name"]
-        }
-    },
-    "required": ["thoughts", "command"]
-}
-"""
-
 AgentThoughtSchemaJSON: Dict[str,str] = {
     "type": "object",
     "properties": {
         "reasoning": {"type": "string"},
-        "command": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "inputs": {"type": "object"}
-                },
-            "required": ["name"]
-        }
+        "command": {"type": "string"},
+        "inputs": {"type": "object"},
     },
     "required": ["reasoning", "command"]
 }
 
 AgentThoughtSchemaTOML = {
-    "reasoning": {"type": "string",
-                  "required":True},
+    "reasoning": {
+        "type":"string",
+        "meta":"<reasoning about user task>",
+        "required": True
+    },
     "command": {
-        "type": 'dict',
-        "schema": {
-            "name": {"type": "string", "required":True},
-            "inputs": {"type": "string"}
-        }
+        "type":"string",
+        "meta":"<selected command>",
+        "required":True
+    },
+    "inputs":{
+        "type":"dict",
+        "keysrules": {"type": "string"}
     }
 }
-
+"""
+# TOML variant - ask for args in second call
+AgentThoughtSchemaTOML = {
+    "reasoning": {
+        "type":"string",
+        "meta":"<reasoning about user task>",
+        "required": True
+    },
+    "command": {
+        "type":"string",
+        "meta":"<selected command>",
+        "required":True
+    },
+    "inputs":{
+        "type":"string",
+        "meta":"<inputs for selected command>"
+    }
+}
+"""
