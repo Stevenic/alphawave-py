@@ -176,7 +176,7 @@ def make_agent(model):
         step_delay=1000,
         max_steps=50,
         max_repair_attempts=2,
-        logRepairs=True,
+        #logRepairs=True,
         syntax='TOML'
     )
 
@@ -396,8 +396,8 @@ if __name__ == '__main__':
     #asyncio.run(test.test_toml_zeroShot_2turn())
     test = TestAlphaWave('toml_oneShot no repair')
     asyncio.run(test.test_toml_oneShot())
-    test = TestAlphaWave('toml_oneShot_repair')
-    asyncio.run(test.test_toml_oneShot_repair())
+    #test = TestAlphaWave('toml_oneShot_repair')
+    #asyncio.run(test.test_toml_oneShot_repair())
     test = TestAlphaWave('test_planning')
     asyncio.run(test.test_planning())
     test = TestAlphaWave('test_pre_agent')

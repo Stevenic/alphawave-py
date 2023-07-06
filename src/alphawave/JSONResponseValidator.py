@@ -40,7 +40,6 @@ def extract_json_template(schema, p=True):
 class JSONResponseValidator(PromptResponseValidator):
     def __init__(self, schema=None, missing_json_feedback='Invalid JSON. return valid JSON.'):
         self.schema = schema
-        print(self.schema)
         self.missing_json_feedback = missing_json_feedback
 
     def parse_dict(self, s):

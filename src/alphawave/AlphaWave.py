@@ -99,7 +99,6 @@ class AlphaWave(AsyncIOEventEmitter):
         
                 self.addInputToHistory(memory, history_variable, input)
                 self.addResponseToHistory(memory, history_variable, response['message'])
-                print(f"***** Alphawave added response to history ")
                 return response
 
             if self.options.logRepairs:

@@ -74,7 +74,7 @@ class AgentCommandValidator:
           command = self._commands[command_name]
           command_validation_result = await command.validate(thought['inputs'] or {}, memory, functions, tokenizer, syntax = self._syntax)
           if command_validation_result['valid']:
-              print(f"***** AgentCommandValidator command validation success\n{command_validation_result}\n")
+              #print(f"***** AgentCommandValidator command validation success\n{command_validation_result}\n")
               #validation_result['value']['inputs'] = command_validation_result['value']
               return validation_result
           else:
@@ -92,7 +92,7 @@ class AgentCommandValidator:
                 'valid': False,
                 'feedback': f'The command validation failed. try again {str(e)}'
                 }
-        print(f"***** AgentCommandValidator generic exit fail {thought['command']['name']}")
+        #print(f"***** AgentCommandValidator generic exit fail {thought['command']['name']}")
         return {
             'type': 'Validation',
             'valid': False,
@@ -106,19 +106,19 @@ class AgentCommandValidator:
         prompt_options=PromptCompletionOptions(completion_type='chat', model=self._model, temperature=0.1)
         args_prompt=Prompt([ConversationHistory(self._history_variable),
                             UserMessage(f'invalid command args: {fail_args}, repair using this format: {command.schema["properties"]}')])
-        print(f"***** AgentCommandValidator recovery attempt wave built\ninvalid command args: {fail_args}, repair using this format: {command.schema['properties']}")
+        #print(f"***** AgentCommandValidator recovery attempt wave built\ninvalid command args: {fail_args}, repair using this format: {command.schema['properties']}")
         wave = AlphaWave(client=self._client, prompt=args_prompt, prompt_options=prompt_options, memory=fork)
-        print(f"***** AgentCommandValidator recovery attempt wave built")
+        #print(f"***** AgentCommandValidator recovery attempt wave built")
         args = None
         try:
             args = await wave.completePrompt()
-            print(f"***** AgentCommandValidator recovery wave result {args}")
+            #print(f"***** AgentCommandValidator recovery wave result {args}")
         except Exception as e:
             traceback.print_exc()
-        print(f'***** recovery result {args}')
+        #print(f'***** recovery result {args}')
         if args:
             return args
-        print(f"***** AgentCommandValidator recovery returning fail_args {fail_args}")
+        #print(f"***** AgentCommandValidator recovery returning fail_args {fail_args}")
         return fail_args
 
 
