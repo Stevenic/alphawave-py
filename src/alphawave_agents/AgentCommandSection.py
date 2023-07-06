@@ -16,16 +16,16 @@ class AgentCommandSection(PromptSectionBase):
         
     async def renderAsMessages(self, memory: Any, functions: Any, tokenizer: Any, max_tokens: int) -> Dict[str, Any]:
         # Render commands to message content
-        content = 'commands:\n'
+        content = 'You have the following  commands available in addition to known facts and reasoning:\n'
         for command in self._commands.values():
             content += f'\t{command.title}:\n'
             content += f'\t\tuse: {command.description}\n'
-            if command.inputs:
-                content += f'\t\tinputs: {command.inputs}\n'
-            if command.output:
-                content += f'\t\toutput: {command.output}\n'
-            if self.one_shot:
-                content += command.one_shot(self.syntax)
+            #if command.inputs:
+            #    content += f'\t\tinputs: {command.inputs}\n'
+            #if command.output:
+            #    content += f'\t\toutput: {command.output}\n'
+            #if self.one_shot:
+            content += command.one_shot(self.syntax)
         # Return as system message
         result = None
         try:

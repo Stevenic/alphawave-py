@@ -165,20 +165,22 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
     def one_shot(self, syntax):
         content=''
         if syntax == 'JSON':
-            content += '\t\tformat: {'+f'"reasoning":"<concise reasons to use {self.title}>","command":'+f'"{self.title}", "inputs":'+'{'
+            content += '\t\tformat: {'+f'"command":'+f'"{self.title}", "inputs":'+'{'
             args = ''
             for arg in self.inputs.split(','):
-                key = (arg.split(':'))[0].strip().strip('"\'') # strip key down to bare alpha key (':' elims type info)
-                content += f'"{key}": "<value for {key}>",'
+                arg_key_dscp = arg.split(':')
+                key = arg_key_dscp[0].strip().strip('"\'') # strip key down to bare alpha key (':' elims type info)
+                content += f'"{key}": "<{arg_key_dscp[1].strip()}>",'
                 content = content[:-1]+'}}\n' # strip final comma 
             #print(f'***** AgentCommandSection one-shot prompt: {content}\n')
             return content
         else:
-            content += f'\t\tformat:\n[RESPONSE]\nreasoning="<concise reasons to use {self.title}>"\ncommand="{self.title}"\n'
+            content += f'\t\tformat:\n[RESPONSE]\ncommand="{self.title}"\n'
             args = ''
             for arg in self.inputs.split(','):
-                key = 'inputs.'+(arg.split(':'))[0].strip().strip('"\'') # strip key down to bare alpha key (':' elims type info)
-                content += f'{key}="<value for {key}>"\n'
+                arg_key_dscp = arg.split(':')
+                key = 'inputs.'+arg_key_dscp[0].strip().strip('"\'') # strip key down to bare alpha key (':' elims type info)
+                content += f'{key}="<{arg_key_dscp[1].strip()}>"\n'
                 content +='[STOP]\n'
             #print(f'***** AgentCommandSection one-shot TOML: {content}\n')
             return content

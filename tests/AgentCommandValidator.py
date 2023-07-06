@@ -15,7 +15,6 @@ from alphawave.JSONResponseValidator import JSONResponseValidator
 from alphawave.TOMLResponseValidator import TOMLResponseValidator
 from alphawave.Response import Response
 from alphawave.AlphaWave import AlphaWave, AlphaWaveOptions
-from alphawave.MemoryFork import MemoryFork
 from alphawave_agents.agentTypes import Command, AgentThought, AgentThoughtSchemaJSON, AgentThoughtSchemaTOML
 from alphawave_agents.MathCommand import MathCommand
 import traceback
@@ -31,10 +30,10 @@ class AgentCommandValidator:
         self._history_variable = history_variable
         
         if syntax == 'JSON':
-            self._input_validator = JSONResponseValidator(AgentThoughtSchemaJSON, 'No valid command was found in the response. Respond using a completed instance of the specified template for the next command.')
+            self._input_validator = JSONResponseValidator(AgentThoughtSchemaJSON, 'No valid JSON objects were found in the response. Return a valid JSON object with reasoning, plan, and the next command to use.')
         else:
             #print(f"***** AgentCommandValidator creating TOML")
-            self._input_validator = TOMLResponseValidator(AgentThoughtSchemaTOML, 'No valid command was found. Respond using an instantiation of the specified template for the next command.')
+            self._input_validator = TOMLResponseValidator(AgentThoughtSchemaTOML, 'No valid TOML found. Return valid TOML with reasoning, plan, and next command to use.')
 
         self._commands = commands
 
@@ -52,18 +51,18 @@ class AgentCommandValidator:
 
           # Validate that the command exists
           thought = validation_result['value']
-          #print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
-          if not('command' in thought) or not('inputs' in thought):
-              #print(f"***** AgentCommandValidator command or inputs not found")
+          print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
+          if not('command' in thought) or not('inputs' in thought['command']) or not ('name' in thought['command']):
+              print(f"***** AgentCommandValidator no command found")
               return {
                   'type': 'Validation',
                   'valid': False,
-                  'feedback': f'command not found or invalid, or inputs missing. The commands you have are {list(self._commands.keys())}'
+                  'feedback': 'No command found. The commands you have are {list(self._commands.keys())}'
               }
 
-          command_name = thought['command']
+          command_name = thought['command']['name']
           if command_name not in self._commands:
-              #print(f"***** AgentCommandValidator no such command {command_name}")
+              print(f"***** AgentCommandValidator no such command {command_name}")
               return {
                   'type': 'Validation',
                   'valid': False,
@@ -72,19 +71,22 @@ class AgentCommandValidator:
           
           # Validate that the command input is valid
           command = self._commands[command_name]
-          command_validation_result = await command.validate(thought['inputs'] or {}, memory, functions, tokenizer, syntax = self._syntax)
-          if command_validation_result['valid']:
-              print(f"***** AgentCommandValidator command validation success\n{command_validation_result}\n")
-              #validation_result['value']['inputs'] = command_validation_result['value']
-              return validation_result
-          else:
-            return {
-                'type': 'Validation',
-                'valid': False,
-                'feedback': 'The command '+thought['command'] +' inputs were missing or malformed. Provide them in this format:\n'
-                +command.one_shot(self._syntax)+'\n, substituting actual values for command inputs\n'
-                }
-
+          command_validation_result = await command.validate(thought['command']['inputs'] or {}, memory, functions, tokenizer, syntax = self._syntax)
+          if not command_validation_result['valid']:
+              print(f"***** AgentCommandValidator command.validate fail, trying repair {command_validation_result}")
+              try:
+                  command_validation_retry =  await self.repair_args(command, thought['command']['inputs'] or {})
+              except Exception as e:
+                  traceback.print_exc()
+                  raise e
+              print(f"***** AgentCommandValidator command.validate repair {command_validation_retry}")
+              if not command_validation_retry['valid']:
+                  return command_validation_retry
+              else:
+                  command_validation_result = command_validation_retry
+          print(f"***** AgentCommandValidator command validation success\n{command_validation_result['value']}")
+          validation_result['value']['command']['inputs'] = command_validation_result['value']
+          return validation_result
         except Exception as e:
             traceback.print_exc()
             return {
@@ -92,42 +94,39 @@ class AgentCommandValidator:
                 'valid': False,
                 'feedback': f'The command validation failed. try again {str(e)}'
                 }
-        print(f"***** AgentCommandValidator generic exit fail {thought['command']['name']}")
+        #print(f"***** AgentCommandValidator generic exit fail {thought['command']['name']}")
         return {
             'type': 'Validation',
             'valid': False,
-            'feedback': f'The command validation failed. try again {str(e)}'
-                }
+            'feedback': 'The command '+thought['command']['name']+' inputs were missing or malformed. Provide them in this format: '+command.schema
+        }
 
-    async def repair_args(self, command, fail_thought):
-        #print(f"***** AgentCommandValidator recovery attempt keys {list(self._memory._memory.keys())}")
-        args_validator = JSONResponseValidator(command.schema, "invalid command inputs syntax, use: {command.one_shot()\n}")
-        fork = MemoryFork(self._memory)
+    async def repair_args(self, command, fail_args):
+        print(f"***** AgentCommandValidator recovery attempt ")
+        args_validator = JSONResponseValidator(command.schema, "invalid command args syntax, use: {command.schema}")
+
         prompt_options=PromptCompletionOptions(completion_type='chat', model=self._model, temperature=0.1)
-        args_prompt=Prompt([ConversationHistory(self._history_variable),
+        args_prompt=Prompt([ConversationHistory('history'),
                             UserMessage(f'invalid command args: {fail_args}, repair using this format: {command.schema["properties"]}')])
-        print(f"***** AgentCommandValidator recovery attempt wave built\ninvalid command args: {fail_args}, repair using this format: {command.schema['properties']}")
-        wave = AlphaWave(client=self._client, prompt=args_prompt, prompt_options=prompt_options, memory=fork)
-        print(f"***** AgentCommandValidator recovery attempt wave built")
-        args = None
+    
+        wave = AlphaWave(client=self._client, prompt=args_prompt, prompt_options=prompt_options, memory=self._memory)
+        print(f"***** AgentCommandValidator recovery attempt ")
         try:
             args = await wave.completePrompt()
-            print(f"***** AgentCommandValidator recovery wave result {args}")
         except Exception as e:
             traceback.print_exc()
         print(f'***** recovery result {args}')
         if args:
             return args
-        print(f"***** AgentCommandValidator recovery returning fail_args {fail_args}")
-        return fail_args
+        return command_validation_result
 
 
 from alphawave.OSClient import OSClient
 
 if __name__ == '__main__':
     memory=VolatileMemory()
-    memory.set('history', {'role': 'assistant', 'content': {"command":{"name":"math", "inputs":{"abc":"xyz"}}}})
+    memory.set('history', {'role': 'assistant', 'content': {"reasoning":"use math", "command":{"name":"math", "inputs":{"abc":"xyz"}}}})
     acv = AgentCommandValidator(commands={"math":MathCommand()}, client=OSClient(logRequests=True), model='vicuna_v1.1', syntax='JSON', memory=memory)
-    #print('acv created')
+    print('acv created')
     result = asyncio.run(acv.repair_args(MathCommand(), {'abc':'xyz'}))
-    #print(result)
+    print(result)

@@ -34,19 +34,13 @@ class AgentThought:
 AgentThoughtSchemaJSON: Dict[str,str] = {
     "type": "object",
     "properties": {
-        "reasoning": {"type": "string"},
         "command": {"type": "string"},
         "inputs": {"type": "object"},
     },
-    "required": ["reasoning", "command"]
+    "required": ["command"]
 }
 
 AgentThoughtSchemaTOML = {
-    "reasoning": {
-        "type":"string",
-        "meta":"<reasoning about user task>",
-        "required": True
-    },
     "command": {
         "type":"string",
         "meta":"<selected command>",

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alphawave"
-version = "0.3.0"
+version = "0.3.2"
 authors = [
   { name="Steven Ickman", email="author@example.com" },
   { name="Bruce DAmbrosio", email="bruce.dambrosio@gmail.com" },
 ]
 
-description = "AlphaWave - a client for interfacing with Large Language Models (LLM)"
+description = "AlphaWave-py - Functions for smaller Large Language Models (sLLMs)"
 
 
 readme = "README.md"
@@ -25,17 +25,21 @@ classifiers = [
 
 dependencies = [
     "promptrix",
-    "requests",
-    "tiktoken",
+    "accelerate",
+    "aiounittest",
+    "cerberus",
+    "openai",
+    "nltk",
     "pyyaml",
     "pyee",
     "selenium",
+    "termcolor",
+    "requests",
+    "tiktoken",
+    "toml",
     "wordfreq",
     "tenacity",	
-    "openai",
-    "nltk",
     "transformers",
-    "accelerate",
     "torch",
     'importlib-metadata; python_version<"3.9"',
 ]

@@ -21,11 +21,11 @@ class MathCommandInput:
 schema = CommandSchema(
     schema_type="object",
     title="math",
-    description="execute some python code to calculate a value",
+    description="evaluate a mathematical expression to calculate its value",
     properties={
         "code": {
             "type": "string",
-            "description": "python expression to evaluate"
+            "description": "expression to evaluate"
         }
     },
     required=["code"],

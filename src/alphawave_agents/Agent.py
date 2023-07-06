@@ -96,22 +96,38 @@ def update_dataclass(instance, source):
 ##
 PromptInstructionSectionJSON = TemplateSection(\
 """
-Reason about the user query following these instructions.
-If the answer is available from fact or reasoning, respond with the answer using the finalAnswer command
-Otherwise, reason step by step about the query, the available information, and the set of commands listed earlier, and select a command to perform.
-The ONLY commands available are the commands listed.
-Return a JSON object with your reasoning and the next command to perform, with arguments, using the format shown above for that command
-"""
-                                              , 'system')
+Reason step-by-step about the user task:
+1. Develop a concise plan for finding an answer and showing it to the user. Base your plan on known fact, reasoning, and the available commands.
+2. Select the first step of that plan as the next command to perform. 
+3. Respond with:
+  - your reasoning 
+  - the JSONformat shown above for that next command, instantiating actual inputs where indicated
+""", 'system')
+PromptOneShotJSON = [
+    UserMessage("What is 35 * 64?"),
+    AssistantMessage("""I will use the math command.
+{"command": "math", "inputs":{"code":"35*64"}}""")]
+
 
 PromptInstructionSectionTOML = TemplateSection(\
 """
-Reason about the user query following these instructions.
-If the answer is available from fact or reasoning, respond with the answer using the finalAnswer command.
-Otherwise, reason step by step about the query, the available information, and the set of commands listed above, and select a command to perform.
-Return your reasoning and the next command to perform, with arguments, using the format provided above for that command.
-"""
-                                              , 'system')
+Reason step-by-step about the user task:
+1. Develop a concise plan for finding an answer and showing it to the user. Base your plan on known fact, reasoning, and the available commands.
+2. Select the first step of that plan as the next command to perform. 
+3. Respond with:
+  - your reasoning 
+  - the JSONformat shown above for that next command, substituting your inputs where indicated
+""", 'system')
+
+PromptOneShotTOML = [
+    UserMessage("What is 35 * 64?"),
+    AssistantMessage("""I will use the math command.
+[RESPONSE]
+command = "math"
+inputs.code = "35*64"
+[STOP]
+""")]
+
 
 @dataclass
 class AgentCommandInput:
@@ -276,10 +292,13 @@ class Agent(SchemaBasedCommand):
                 
                 if self._options['syntax'] == 'JSON':
                     pis = PromptInstructionSectionJSON
+                    pos = PromptOneShotJSON
                 else:
                     pis = PromptInstructionSectionTOML
+                    pos = PromptOneShotTOML
                     
                 sections.append(pis)
+                sections.extend(pos)
                 prompt = Prompt([
                     GroupSection(sections, 'system'),
                     ConversationHistory(history_variable, 1.0, True)

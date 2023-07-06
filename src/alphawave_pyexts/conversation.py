@@ -317,7 +317,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="alpaca",
-        system="Below is an instruction that describes a task. Write a response that appropriately completes the request.",
+        system="",
         roles=("### Instruction", "### Response"),
         messages=(),
         offset=0,
@@ -384,12 +384,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="stablelm",
-        system="""<|SYSTEM|># StableLM Tuned (Alpha version)
-- StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
-- StableLM is excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
-- StableLM is more than just an information source, StableLM is also able to write poetry, short stories, and make jokes.
-- StableLM will refuse to participate in anything that could harm a human.
-""",
+        system="",
         roles=("<|USER|>", "<|ASSISTANT|>"),
         messages=(),
         offset=0,
@@ -403,7 +398,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="baize",
-        system="The following is a conversation between a human and an AI assistant named Baize (named after a mythical creature in Chinese folklore). Baize is an open-source AI assistant developed by UCSD and Sun Yat-Sen University. The human and the AI assistant take turns chatting. Human statements start with [|Human|] and AI assistant statements start with [|AI|]. The AI assistant always provides responses in as much detail as possible, and in Markdown format. The AI assistant always declines to engage with topics, questions and instructions related to unethical, controversial, or sensitive issues. Complete the transcript in exactly that format.\n",
+        system="",
         roles=("[|Human|]", "[|AI|]"),
         messages=(
             ("[|Human|]", "Hello!"),
@@ -440,17 +435,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="openbuddy",
-        system="""Consider a conversation between User (a human) and Assistant (named Buddy).
-Buddy is an INTP-T, a friendly, intelligent and multilingual AI assistant, by OpenBuddy team. GitHub: https://github.com/OpenBuddy/OpenBuddy
-Buddy cannot access the Internet.
-Buddy can fluently speak the user's language (e.g. English, Chinese).
-Buddy can generate poems, stories, code, essays, songs, parodies, and more.
-Buddy possesses vast knowledge about the world, history, and culture.
-Buddy's responses are always safe, creative, high-quality, human-like, and interesting.
-Buddy strictly refuses to discuss political, NSFW, or other unsafe topics.
-
-User: Hi.
-Assistant: Hi, I'm Buddy, your AI assistant. How can I help you today?""",
+        system="",
         roles=("User", "Assistant"),
         messages=(),
         offset=0,
@@ -463,7 +448,7 @@ Assistant: Hi, I'm Buddy, your AI assistant. How can I help you today?""",
 register_conv_template(
     Conversation(
         name="phoenix",
-        system="A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the human's questions.\n\n",
+        system="",
         roles=("Human", "Assistant"),
         messages=(),
         offset=0,
@@ -502,12 +487,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="mpt",
-        system="""<|im_start|>system
-- You are a helpful assistant chatbot trained by MosaicML.
-- You answer questions.
-- You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
-- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.
-""",
+        system="",
         roles=("<|im_start|>user", "<|im_start|>assistant", "<|im_start|>system"),
         messages=(),
         offset=0,
@@ -521,9 +501,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="mpt_instruct",
-        system=""""Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-""",
+        system="",
         roles=("### Instruction", "### Response",""),
         messages=(),
         offset=0,
@@ -594,7 +572,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="Robin",
-        system="A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the human's questions.",
+        system="",
         roles=("###Human", "###Assistant"),
         messages=(),
         offset=0,
@@ -610,7 +588,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="snoozy",
-        system="### Instruction:\nThe prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response.",
+        system="",
         roles=("### Prompt", "### Response", "### Instruction:\n"),
         messages=(),
         offset=0,
@@ -663,6 +641,66 @@ register_conv_template(
     )
 )
 
+register_conv_template(
+    Conversation(
+        name="falcon_instruct",
+        system="",
+        roles=("User", "Assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        stop_str=["User:", "Assistant:"],
+        stop_token_ids=[11],
+        sep="\n",
+        sep2="<|endoftext|>",
+        first_msg_no_role=False,
+    )
+)
+register_conv_template(Conversation(
+        name="galactica",
+        system="",
+        roles=("Question", "Answer", ""), # third entry is system prefix. if absent defaults to user prefix.
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep="\n",
+        sep2="",
+    )
+)
+register_conv_template(Conversation(
+        name="guanaco",
+        system="",
+        roles=("### Human", "### Assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep="\n",
+        sep2="",
+    )
+)
+register_conv_template(Conversation(
+        name="wizardLM",
+        system="",
+        roles=("### Input", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep="\n",
+        sep2="\n",
+    )
+)
+register_conv_template(Conversation(
+        name="wizardLM2",
+        system="",
+        roles=("User", "Assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep="\n",
+        sep2="\n",
+    )
+)
+
 # ChagGPT default template
 register_conv_template(
     Conversation(
@@ -680,7 +718,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="pygmalion",
-        system="Samanatha's Persona: a young, flirty, chatty women. She loves to hang out  with friends, go to movies, or just snuggle on the sofa. <START>\n",
+        system="",
         roles=("You", "Samanath"),
         messages=(),
         offset=0,
@@ -693,8 +731,7 @@ register_conv_template(
 register_conv_template(
     Conversation(
         name="tigerbot",
-        system="A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+        system="",
         roles=("### Instruction", "### Response"),
         messages=(),
         offset=0,

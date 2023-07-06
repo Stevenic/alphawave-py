@@ -17,58 +17,6 @@ SYSTEM_PREFIX = 'system'
 host='192.168.1.195'
 port = 5004
 
-cv.register_conv_template(
-    Conversation(
-        name="falcon_instruct",
-        system="",
-        roles=("User", "Assistant"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
-        stop_str=["User:", "Assistant:"],
-        stop_token_ids=[11],
-        sep="\n",
-        sep2="<|endoftext|>",
-        first_msg_no_role=False,
-    )
-)
-cv.register_conv_template(Conversation(
-        name="guanaco",
-        system="",
-        roles=("Human", "Assistant"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep="\n",
-        sep2="",
-    )
-)
-cv.register_conv_template(Conversation(
-        name="wizardLM",
-        system="""Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction
-""",
-        roles=("### Input", "### Response"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep="\n",
-        sep2="\n",
-    )
-)
-cv.register_conv_template(Conversation(
-        name="wizardLM2",
-        system="""Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction
-""",
-        roles=("User", "Assistant"),
-        messages=(),
-        offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
-        sep="\n",
-        sep2="\n",
-    )
-)
 
 def get_available_models():
     return list(cv.conv_templates.keys())
