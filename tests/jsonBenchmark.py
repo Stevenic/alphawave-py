@@ -176,33 +176,12 @@ agent_validation_schema={
 }
 
 def make_agent(model):
-    initial_prompt = \
-    """
-    Hi! I'm here to help.
-    """
-
     agent_options = AgentOptions(
         client = client,
-        prompt=[
-            "You are a helpful information bot, eager to answer questions.\n"
-        ],
-        prompt_options=PromptCompletionOptions(
-            completion_type = 'chat',
-            model = model,
-            temperature = 0.2,
-            max_input_tokens = 1200,
-            max_tokens = 200,
-        ),
-        #initial_thought={ },
-        step_delay=1000,
-        max_steps=50,
-        max_repair_attempts=1,
-        syntax='JSON',
-        tokenizer=GPT3Tokenizer(),
-        #logRepairs=True
+        prompt=["You are a helpful information bot, eager to answer questions.\n" ],
+        prompt_options=PromptCompletionOptions(model = model, temperature = 0.2, max_input_tokens = 1200, max_tokens = 400 ),
+        syntax='JSON'
     )
-
-    # Create an agent
     agent = Agent(options = agent_options)
     return agent
     
@@ -367,11 +346,11 @@ Question: Where does John think the cat is when he re-enters the room??""")
         agent.addCommand(FinalAnswerCommand())
         self.memory.clear()
         print('***** benchmark calling agent complete task')
-        result = await agent.completeTask('what is 35 * 64?')
+        result = await agent.completeTask('what is 73 * 21?')
         if type(result) == dict and 'type' in result and result['type'] == 'TaskResponse':
             self.assertTrue(result['status'] == 'success' or result['status'] == 'input_needed')
             print(result['message'])
-            self.assertTrue('2240' in result['message'])
+            self.assertTrue('1533' in result['message'])
         else:
             print(f' Unknown Agent result type: {result}')
             self.assertTrue(False)
@@ -419,7 +398,7 @@ if __name__ == '__main__':
     #asyncio.run(test.test_json_zeroShot())
     #test = TestAlphaWave('json_zeroShot_2turn')
     #asyncio.run(test.test_json_zeroShot_2turn())
-    test = TestAlphaWave('json_oneShot no repair')
+    #test = TestAlphaWave('json_oneShot no repair')
     asyncio.run(test.test_json_oneShot())
     #test = TestAlphaWave('json_oneShot_repair')
     #asyncio.run(test.test_json_oneShot_repair())

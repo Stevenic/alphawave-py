@@ -679,7 +679,7 @@ register_conv_template(Conversation(
     )
 )
 register_conv_template(Conversation(
-        name="wizardLM",
+        name="wizardLM2",
         system="",
         roles=("### Input", "### Response"),
         messages=(),
@@ -690,9 +690,20 @@ register_conv_template(Conversation(
     )
 )
 register_conv_template(Conversation(
-        name="wizardLM2",
+        name="wizardCoder",
+        system="Below is an instruction that describes a task. Write a response that appropriately completes the request",
+        roles=("### Instruction", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep="\n",
+        sep2="<|end|>",
+    )
+)
+register_conv_template(Conversation(
+        name="wizardLM",
         system="",
-        roles=("User", "Assistant"),
+        roles=("USER", "ASSISTANT"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_TWO,
@@ -736,6 +747,19 @@ register_conv_template(
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.ROBIN,
+        sep="\n\n",
+        stop_str="###",
+    )
+)
+# tigerbot template
+register_conv_template(
+    Conversation(
+        name="xgen",
+        system="",
+        roles=("### Human", "### Assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
         sep="\n\n",
         stop_str="###",
     )

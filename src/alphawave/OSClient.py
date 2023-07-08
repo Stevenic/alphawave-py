@@ -86,57 +86,31 @@ class OSClient(PromptCompletionClient):
         if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
             max_input_tokens = options.max_input_tokens
         
-        if hasattr(options, 'completion_type') and options.completion_type == 'text':
-            result = prompt.renderAsText(memory, functions, tokenizer, max_input_tokens)
-            if result.tooLong:
-                return {'status': 'too_long', 'message': f"The generated text completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
-            if self.options.logRequests:
-                print(Colorize.title('PROMPT:'))
-                for msg in result.output:
-                    if not isinstance(msg, dict):
-                        msg = msg.__dict__
-                    print(Colorize.output(json.dumps(msg, indent=2)), end='')
-                print()
-            request = self.copyOptionsToRequest(CreateCompletionRequest({
-                'model': optionsmodel,
-                'prompt': result.output,
-            }), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
-            response = self.createCompletion(request)
-            if self.options.logRequests:
-                print(Colorize.title('RESPONSE:'))
-                print(Colorize.value('status', response.status))
-                print(Colorize.value('duration', time.time() - startTime, 'ms'))
-                print(Colorize.output(response.message))
-
-            if response.status == 'success':
-                completion = response.message
-                return {'status': 'success', 'message': completion}
-            else:
-                return {'status': 'error', 'message': f"The text completion API returned an error status of {response.status}: {response.message}"}
+        result = await prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
+        
+        if result.tooLong:
+            return {'status': 'too_long', 'message': f"The generated chat completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
+        if self.options.logRequests:
+            print(Colorize.title('CHAT PROMPT:'))
+            for msg in result.output:
+                if not isinstance(msg, dict):
+                    print(Colorize.output(msg))
+                    msg = msg.__dict__
+                print(Colorize.output(json.dumps(msg, indent=2)), end='')
+            print()
+        request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
+        response = self.createChatCompletion(request)
+        if self.options.logRequests:
+            print(Colorize.title('CHAT RESPONSE:'))
+            print(Colorize.value('status', response.status))
+            print(Colorize.value('duration', time.time() - startTime, 'ms'))
+            print(Colorize.output(response.message))
+        
+        if response.status == 'success':
+            completion = response.message
+            return {'status': 'success', 'message': completion}
         else:
-            result = await prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
-            if result.tooLong:
-                return {'status': 'too_long', 'message': f"The generated chat completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
-            if self.options.logRequests:
-                print(Colorize.title('CHAT PROMPT:'))
-                for msg in result.output:
-                    if not isinstance(msg, dict):
-                        msg = msg.__dict__
-                    print(Colorize.output(json.dumps(msg, indent=2)), end='')
-                print()
-            request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
-            response = self.createChatCompletion(request)
-            if self.options.logRequests:
-                print(Colorize.title('CHAT RESPONSE:'))
-                print(Colorize.value('status', response.status))
-                print(Colorize.value('duration', time.time() - startTime, 'ms'))
-                print(Colorize.output(response.message))
-
-            if response.status == 'success':
-                completion = response.message
-                return {'status': 'success', 'message': completion}
-            else:
-                return {'status': 'error', 'message': f"The chat completion API returned an error status of {response.status}: {response.message}"}
+            return {'status': 'error', 'message': f"The chat completion API returned an error status of {response.status}: {response.message}"}
 
     def addRequestHeaders(self, headers: Dict[str, str], options: OSClientOptions):
         headers['Authorization'] = f"Bearer {options.apiKey}"

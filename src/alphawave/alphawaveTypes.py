@@ -15,8 +15,8 @@ class PromptResponseValidator:
 
 @dataclass
 class PromptCompletionOptions:
-    completion_type: str  # 'text' | 'chat'
-    model: str
+    completion_type: str  = 'chat' # 'text' | 'chat'
+    model: str = ''
     max_input_tokens: int =2000
     temperature: float = 0.7
     top_p: float = 1.0

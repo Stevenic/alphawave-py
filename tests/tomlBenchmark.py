@@ -171,7 +171,7 @@ def make_agent(model):
             model = model,
             temperature = 0.2,
             max_input_tokens = 1200,
-            max_tokens = 200,
+            max_tokens = 400,
         ),
         step_delay=1000,
         max_steps=50,
@@ -314,7 +314,8 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.assertTrue(response['status'] == 'success')
         self.end('format')
         print(response)
-        self.assertTrue('math' in response['message']['content']['plan'])
+        self.assertTrue('message' in response and 'content' in response['message'] 
+                        and 'plan' in response['message']['content'] and 'math' in response['message']['content']['plan'])
         self.end('content')
 
     async def test_pre_agent(self):
@@ -329,10 +330,15 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end('format')
         print(response)
         if response['status'] == 'success':
-            self.assertTrue('math' in response['message']['content']['action'])
-            self.assertTrue('sqrt' in response['message']['content']['input'])
-            self.end('content')
-
+            self.assertTrue('message' in response and 'content' in response['message'] 
+                            and 'action' in response['message']['content'] and 'input' in response['message']['content'])
+            if self.ok:
+                self.assertTrue('math' in response['message']['content']['action'])
+                self.assertTrue('sqrt' in response['message']['content']['input'])
+        else:
+            self.assertTrue(False)
+        self.end('content')
+        
     async def test_agent_w_Math(self):
         print('\n###############################################################################################')
         # Add core actions to the agent

@@ -99,6 +99,7 @@ class AgentCommandValidator:
             'feedback': f'The command validation failed. try again {str(e)}'
                 }
 
+    ### interesting experiment, set aside for now
     async def repair_args(self, command, fail_thought):
         #print(f"***** AgentCommandValidator recovery attempt keys {list(self._memory._memory.keys())}")
         args_validator = JSONResponseValidator(command.schema, "invalid command inputs syntax, use: {command.one_shot()\n}")
@@ -124,10 +125,3 @@ class AgentCommandValidator:
 
 from alphawave.OSClient import OSClient
 
-if __name__ == '__main__':
-    memory=VolatileMemory()
-    memory.set('history', {'role': 'assistant', 'content': {"command":{"name":"math", "inputs":{"abc":"xyz"}}}})
-    acv = AgentCommandValidator(commands={"math":MathCommand()}, client=OSClient(logRequests=True), model='vicuna_v1.1', syntax='JSON', memory=memory)
-    #print('acv created')
-    result = asyncio.run(acv.repair_args(MathCommand(), {'abc':'xyz'}))
-    #print(result)

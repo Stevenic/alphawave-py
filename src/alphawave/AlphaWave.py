@@ -30,7 +30,7 @@ class AlphaWaveOptions:
     history_variable: str = 'history'
     input_variable: str = 'input'
     max_history_messages: int = 6
-    max_repair_attempts: int =2
+    max_repair_attempts: int =3
     tokenizer: Tokenizer = GPT3Tokenizer()
     validator: DefaultResponseValidator = DefaultResponseValidator()
     logRepairs: bool = False
@@ -79,15 +79,12 @@ class AlphaWave(AsyncIOEventEmitter):
             response = await client.completePrompt(memory, functions, tokenizer, prompt, prompt_options)
             self.emit('afterPrompt', memory, functions, tokenizer, prompt, prompt_options, response)
             if response['status'] != 'success':
-                #print(f'***** Alphawave client completePrompt failure {response}')
                 return response
 
             if not isinstance(response['message'], dict):
-                #print(f'***** Alphawave making sure message is a dict with key content')
                 response['message'] = {'role': 'assistant', 'content': response['message'] or ''}
 
             self.emit('beforeValidation', memory, functions, tokenizer, response, max_repair_attempts)
-            #print(f'***** Alphawave before validation ')
             validation = validator.validate_response(memory, functions, tokenizer, response, max_repair_attempts)
             self.emit('afterValidation', memory, functions, tokenizer, response, max_repair_attempts, validation)
             if 'coroutine' in str(type(validation)).lower():
@@ -95,7 +92,6 @@ class AlphaWave(AsyncIOEventEmitter):
             if validation['valid']:
                 if 'value' in validation:
                     response['message']['content'] = validation['value']
-                    #print(f"***** Alphawave post validation picking up value {response}\n note response['message']['content'] must exist!")
         
                 self.addInputToHistory(memory, history_variable, input)
                 self.addResponseToHistory(memory, history_variable, response['message'])
@@ -155,11 +151,11 @@ class AlphaWave(AsyncIOEventEmitter):
             memory.set(variable, history)
 
     async def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):
-        client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'log_repairs'))
+        client, prompt, prompt_options, memory, history_variable, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory',  'history_variable', 'validator', 'log_repairs'))
 
-        # Are we out of attempts?
+        # Are we out of attemp ts?
         feedback = validation.get('feedback', 'The response was invalid. Try another strategy.')
-            
+        #print(f'remaining_repair {remaining_attempts}')    
         if remaining_attempts <= 0:
             return {
                 'status': 'invalid_response',
