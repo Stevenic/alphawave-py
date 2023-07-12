@@ -39,18 +39,18 @@ google_key = os.getenv("GOOGLE_KEY")
 google_cx = os.getenv("GOOGLE_CX")
 GOOGLE = 'google'
 
-def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None, port = None, tkroot = None, tkdisplay=None):
+async def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None, port = None, tkroot = None, tkdisplay=None):
     completion = None
     response = ''
     #print(f'***** utility ask_LLL temperature {temp}')
     try:
       if not model.lower().startswith('gpt'):
-        completion = llm.run_query(model, gpt_message, max_tokens, temp, top_p, host, port, tkroot, tkdisplay )
+        completion = await llm.run_query(model, gpt_message, max_tokens, temp, top_p, host, port, tkroot, tkdisplay )
         if completion is not None:
           response = completion
 
       else:
-        stream= openai.ChatCompletion.create(
+        stream= await openai.ChatCompletion.create(
             model=model, messages=gpt_message, max_tokens=max_tokens, temperature=temp, top_p=1, stop='STOP', stream=True)
         response = ''
         if stream is None:

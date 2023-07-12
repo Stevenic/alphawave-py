@@ -7,18 +7,10 @@ from promptrix.GPT3Tokenizer import GPT3Tokenizer
 from alphawave.JSONResponseValidator import JSONResponseValidator
 
 class TestJSONResponseValidator(aiounittest.AsyncTestCase):
-    memory = VolatileMemory()
-    functions = FunctionRegistry()
-    tokenizer = GPT3Tokenizer()
-    schema = {
-        "type": "object",
-        "properties": {
-            "foo": {
-                "type": "string"
-            }
-        },
-        "required": ["foo"]
-    }
+    def setUp(self):
+        self.memory = VolatileMemory()
+        self.functions = FunctionRegistry()
+        self.tokenizer = GPT3Tokenizer()
 
     def test_constructor(self):
         validator = JSONResponseValidator()

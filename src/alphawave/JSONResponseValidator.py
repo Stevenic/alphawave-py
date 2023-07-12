@@ -85,11 +85,18 @@ class JSONResponseValidator(PromptResponseValidator):
 
     def validate_response(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, response: PromptResponse, remaining_attempts: int) -> Validation:
         message = response['message']
+
+        template = {}
+        template_suffix = ''
+        if self.schema is not None:
+            template = extract_json_template(self.schema)
+        if len(str(template)) > 4:
+            template_suffix = f' Respond using this template:\n{template}\n'
         
-        text = message if isinstance(message, str) else message.get('content', '')
-        #print(f'***** JSONResponseValidator input {text}')
+        raw_text = message if isinstance(message, str) else message.get('content', '')
+        #print(f'***** JSONResponseValidator input {raw_text}')
         # Parse the response text
-        text = re.sub('\n+', '\n', text)
+        text = re.sub('\n+', '\n', raw_text)
         cleaned_text = ""
         for char in text:
             if ord(char) >= 10:
@@ -103,12 +110,12 @@ class JSONResponseValidator(PromptResponseValidator):
         except Exception as e:
             raise e
         if len(parsed) == 0:
-            template = extract_json_template(self.schema)
             #print(f'***** JSONResponseValidator failure len(parsed) == 0')
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_json_feedback+f' using this template:\n{template}\n'
+                'feedback': self.missing_json_feedback+template_suffix,
+                'value':raw_text
             }
 
         # Validate the response against the schema
@@ -135,20 +142,18 @@ class JSONResponseValidator(PromptResponseValidator):
                     path = str(list(e.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
                     if not errors:
                         errors = e
-                    template = extract_json_template(self.schema)
                     #print(f'***** JSONResponseValidator ValidationError exception {str(e)}\n{self.schema}\n')
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}. respond using this template:\n{template}\n'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}.'+template_suffix
                     }
                 except Exception as e:
-                    template = extract_json_template(self.schema)
                     #print(f'***** JSONResponseValidator validator generic exception {str(e)}\n{self.schema}')
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}. respond using this template:\n{template}\n'
+                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}.'+template_suffix
                     }      
     
         else:
@@ -157,7 +162,7 @@ class JSONResponseValidator(PromptResponseValidator):
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_json_feedback+f' using this template:\n{template}\n'
+                'feedback': self.missing_json_feedback+template_suffix
             }
 
     def get_error_fix(self, error: ValidationError) -> str:

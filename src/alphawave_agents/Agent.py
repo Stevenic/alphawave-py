@@ -5,6 +5,7 @@ from pyee import AsyncIOEventEmitter
 import asyncio, copy
 import json
 import sys
+import time
 import traceback
 from promptrix.promptrixTypes import Message, PromptFunctions, PromptSection, PromptMemory, Tokenizer
 from promptrix.FunctionRegistry import  FunctionRegistry
@@ -96,8 +97,9 @@ def update_dataclass(instance, source):
 ##
 PromptInstructionSectionJSON = TemplateSection(\
 """
-Reason step-by-step about the user task:
-1. Develop a concise plan for finding an answer and showing it to the user. Base your plan on known fact, reasoning, and the available commands.
+Reason step-by-step about the user task.
+If the task can be completed from known fact, reasoning, or has been completed earlier, respond immediately. 
+Otherwise, develop a concise plan for completing the task. Base your plan on known fact, reasoning, prior results, and the available commands.
 2. Select the first step of that plan as the next command to perform. 
 3. Respond with:
   - your reasoning 
@@ -169,6 +171,7 @@ class Agent(SchemaBasedCommand):
         update_dataclass(self._options, options.__dict__)
         #self._options = self._options.__dict__
         self._events: EventEmitter = AsyncIOEventEmitter()
+        self.top_level_task=None
 
     @property
     def client(self):
@@ -212,6 +215,9 @@ class Agent(SchemaBasedCommand):
       try:
         # Initialize the input to the next step
         stepInput = input if input is not None else self.memory.get(self.options['input_variable'])
+        if self.top_level_task is None:
+            self.top_level_task = stepInput
+
         # Dispatch to child agent if needed
         step = 0
         state = self.get_agent_state(agentId)
@@ -220,14 +226,20 @@ class Agent(SchemaBasedCommand):
             # Wait for step delay to prevent gpt overrun
             if step > 0 and self._options['step_delay'] > 0:
                 sys.stdout.flush()
-                await asyncio.sleep(self._options['step_delay']/1000)
+                time.sleep(self._options['step_delay']/100) # assumes step delay is in seconds
             # Execute next step
             #print(f'***** Agent completeTask calling execute_next_step {stepInput}')
-            result = await self.execute_next_step(stepInput, agentId, executeInitialThought)
-            if isinstance(result, str): ## weird way to determining valid result!
-                stepInput = result
+            result, ran_command = await self.execute_next_step(stepInput, agentId)
+            #print(f'***** Agent completeTask return from execute_next_step {ran_command}, {result}')
+            if ran_command:
+                # check for command in response from command
+                # Create command validator
+                #validator = AgentCommandValidator(self._commands, self._options['client'], self._options['prompt_options'].model,
+                #                                  self._options['syntax'], memory=self.memory, history_variable=history_variable)
+                # just a stub, need to finish if good idea
+                return {'type':'TaskResponse', 'status':'success', 'message':result}
             else:
-                return result
+                return {'type':'TaskResponse', 'status':'success', 'message':result}
 
             step += 1
             executeInitialThought = False
@@ -240,18 +252,6 @@ class Agent(SchemaBasedCommand):
       except Exception as e:
         traceback.print_exc()
         pass
-
-    # Agent as Commands
-    async def execute(self, input: AgentCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer):
-        # Initialize the agents state
-        #print(f'***** Agent execute input {input}')
-        agentId = input.agentId
-        state = self.get_agent_state(agentId)
-        state['context'] = input.input
-        self.set_agent_state(state, agentId)
-
-        # Start the task
-        return await self.completeTask(None, agentId)
 
     def get_agent_state(self, agentId: Optional[str] = None):
         key = f'{self.options.agent_variable}-{agentId}' if agentId else self._options['agent_variable']
@@ -304,6 +304,7 @@ class Agent(SchemaBasedCommand):
                     ConversationHistory(history_variable, 1.0, True)
                 ])
                 if input:
+                    #print(f'***** Agent append Text Section {input}')
                     prompt.sections.append(TextSection(input, 'user', -1, True, '\n', 'user'))
                     # Ensure input variable is set otherwise the history will be wrong.
                     self.memory.set(self.options['input_variable'], input)
@@ -349,38 +350,45 @@ class Agent(SchemaBasedCommand):
                 max_attempts = 2 if self._options['retry_invalid_responses'] else 1
                 for attempt in range(max_attempts):
                     response = await wave.completePrompt()
+                    
                     if response['status'] != 'invalid_response':
                         break
 
                 # Ensure response succeeded
+                # Note at this point AgentCommandValidator has approved response
                 if response['status'] != 'success':
                     return {
                         'type': "TaskResponse",
                         'status': response['status'],
                         'message': response['message']
-                    }
+                    }, False
 
             # Get agents thought and execute command
             message = response['message']
             thought = message['content']
+
+            #test if LLM wants to execute command. If no, just return!
+            if type(thought) != dict or 'command' not in thought:
+                #print(f'***** Agent execute_next_step returning no next command')
+                return thought, False  # False means don't keep going, no command to run
             self._events.emit('newThought', thought)
             #print(f'***** Agent execute_next_step calling execute_command state {state}, thought {thought}')
 
+            command_name = thought['command']
+            command_input = str(thought['inputs'] or '')
             result = await self.execute_command(state, thought)
-
+            #print(f'command_result \n{result}\n')
             # Check for task result and error
             task_response = result if isinstance(result, dict) and result.get('type') == 'TaskResponse' else None
             if task_response:
                 if task_response['status'] in ['error', 'invalid_response', 'rate_limited', 'too_many_steps', 'too_long']:
                     #print(f'***** Agent execute_next_step fail {task_response}')
-                    return task_response
+                    return task_response, False
 
             # Update history
+            return_msg = task_response['message'] if task_response else result
             history = self.memory.get(history_variable) or []
-            if input:
-                #history.append({'role': 'user', 'content': input})
-                pass
-            #history.append({'role': 'assistant', 'content': json.dumps(thought)})
+            history.append({'role': 'assistant', 'content': command_name+' '+input+' result:\n'+return_msg})
             self.memory.set(history_variable, history)
 
             # Save the agents state
@@ -388,26 +396,27 @@ class Agent(SchemaBasedCommand):
             self.set_agent_state(state, agent_id)
 
             # Return result
-            return_msg = task_response if task_response else Utilities.to_string(self.tokenizer, result)
+            #return_msg = task_response if task_response else Utilities.to_string(self.tokenizer, result)
             #print(f'***** Agent execute_next_step returning {return_msg}')
-            return return_msg
+            return return_msg, True
         except Exception as err:
-            traceback_printexc()
+            traceback.print_exc()
             return {
                 'type': "TaskResponse",
                 'status': "error",
                 'message': str(err)
-            }
+            }, False
 
     async def execute_command(self, state: AgentState, thought: AgentThought):
-        # Get command
+        # a command to execute
         command_name = thought['command']
         command = self._commands.get(command_name, None) or {}
         input = thought['inputs'] or {}
         # Execute command and return result
         #print(f'***** Agent execute_command  {command_name}, {input}')
         response = command.execute(input, self.memory, self.functions, self.tokenizer)
-        if 'coroutine' in str(type(response)).lower():
-            return await response
+        #if 'coroutine' in str(type(response)).lower():
+        #    return await response
+        #print(f'***** Agent execute_command {command_name}\n{response}\n')
         return response
 

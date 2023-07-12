@@ -98,8 +98,9 @@ class TOMLResponseValidator(PromptResponseValidator):
             #print(f'***** TOMLResponseValidator failure no toml', file=sys.stderr)
             return {
                 'type': 'Validation',
-                'valid': False,
-                'feedback': self.missing_toml_feedback+f' using this template:\n{self.feedback_schema}'
+                'valid': 'True',
+                'feedback': self.missing_toml_feedback+f' using this template:\n{self.feedback_schema}',
+                'value': text
             }
 
         # Validate the response against the schema
@@ -112,7 +113,7 @@ class TOMLResponseValidator(PromptResponseValidator):
             return {
                 'type': 'Validation',
                 'valid': False,
-                'feedback': self.missing_toml_feedback+f' e fixes:\n{str(e)}. respond using this format:\n{self.feedback_schema} '
+                'feedback': f'Response found but not a complete TOML form. e fixes:\n{str(e)}. respond using this format:\n{self.feedback_schema} '
             }
 
         if self.schema:
@@ -132,14 +133,14 @@ class TOMLResponseValidator(PromptResponseValidator):
                     return {
                         'type': 'Validation',
                         'valid': False,
-                        'feedback': self.missing_toml_feedback+f'Apply these fixes:\n{v._errors} response template:\n{self.feedback_schema}\n'
+                        'feedback': f'Response TOML found but didnt match schema. Apply these fixes:\n{v._errors} response template:\n{self.feedback_schema}\n'
                     }
             except Exception as e:
                 #print(f'***** TOMLResponseValidator validator exception {str(e)}')
                 return {
                     'type': 'Validation',
                     'valid': False,
-                    'feedback': self.missing_toml_feedback+f'Repair and respond using this template:\n{self.feedback_schema} '
+                    'feedback': f'TOML form found but exception attempting to validate. Repair and respond using this template:\n{self.feedback_schema} '
                 }      
     
         else:

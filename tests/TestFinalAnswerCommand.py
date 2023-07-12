@@ -15,14 +15,14 @@ class TestFinalAnswerCommand(aiounittest.AsyncTestCase):
     def test_constructor(self):
         command = FinalAnswerCommand()
         self.assertEqual(command.title, 'finalAnswer')
-        self.assertEqual(command.description, 'generate an answer for the user')
-        self.assertEqual(command.inputs, '"answer":"<final answer value>"')
+        self.assertEqual(command.description, 'show answer to the user')
+        self.assertEqual(command.inputs, '"answer":"<answer to show user>"')
         self.assertEqual(command.output, 'a followup task or question')
 
         command = FinalAnswerCommand('custom title', 'custom description')
         self.assertEqual(command.title, 'custom title')
         self.assertEqual(command.description, 'custom description')
-        self.assertEqual(command.inputs, '"answer":"<final answer value>"')
+        self.assertEqual(command.inputs, '"answer":"<answer to show user>"')
         self.assertEqual(command.output, 'a followup task or question')
 
     async def test_validate(self):
@@ -30,7 +30,7 @@ class TestFinalAnswerCommand(aiounittest.AsyncTestCase):
         input = {
             'answer': 'final answer'
         }
-        result = await command.validate(input, self.memory, self.functions, self.tokenizer)
+        result = command.validate(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['valid'], True)
         self.assertEqual(result['value'], input)
 
@@ -38,7 +38,7 @@ class TestFinalAnswerCommand(aiounittest.AsyncTestCase):
         input = {
             'foo': 'final answer'
         }
-        result = await command.validate(input, self.memory, self.functions, self.tokenizer)
+        result = command.validate(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['valid'], False)
         print(f"***** TestFinalAnswerCommand feedback {result['feedback']}")
         #self.assertEqual(result['feedback'], f'The command.input has errors:\n{input}: requires property "answer"\n\nTry again.')
@@ -51,7 +51,7 @@ class TestFinalAnswerCommand(aiounittest.AsyncTestCase):
         result = command.execute(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result, {
             'type': "TaskResponse",
-            'status': "success",
+            'status': "input_needed",
             'message': "final answer"
         })
 

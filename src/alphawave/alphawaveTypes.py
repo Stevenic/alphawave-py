@@ -17,15 +17,15 @@ class PromptResponseValidator:
 class PromptCompletionOptions:
     completion_type: str  = 'chat' # 'text' | 'chat'
     model: str = ''
-    max_input_tokens: int =2000
+    max_input_tokens: int =8000
     temperature: float = 0.7
     top_p: float = 1.0
     max_tokens: int = 500
     stop: str = None
-    presence_penalty: float = 1.0
-    frequency_penalty: float = 1.0
-    logit_bias = None
-    best_of = None
+    #presence_penalty: float = 1.0
+    #frequency_penalty: float = 1.0
+    #logit_bias = None
+    #best_of = None
 
 PromptResponseStatus = ['success', 'error', 'rate_limited', 'invalid_response', 'too_long']
 

@@ -17,15 +17,15 @@ class TestAskCommand(aiounittest.AsyncTestCase):
         command = AskCommand()
         self.assertEqual(command.title, 'ask')
         self.assertEqual(command.description, 'ask the user a question and wait for their response')
-        self.assertEqual(command.inputs, '"question":"<question to ask value>"')
-        self.assertEqual(command.output, 'users answer')
+        self.assertEqual(command.inputs, '"question":"<question to ask>"')
+        self.assertEqual(command.output, 'answer')
 
     def test_constructor_custom_params(self):
         command = AskCommand('custom title', 'custom description')
         self.assertEqual(command.title, 'custom title')
         self.assertEqual(command.description, 'custom description')
-        self.assertEqual(command.inputs, '"question":"<question to ask value>"')
-        self.assertEqual(command.output, 'users answer')
+        self.assertEqual(command.inputs, '"question":"<question to ask>"')
+        self.assertEqual(command.output, 'answer')
 
     async def test_validate_valid_input(self):
         print('test_validate_valid_input')
@@ -33,7 +33,7 @@ class TestAskCommand(aiounittest.AsyncTestCase):
         input = {
             'question': 'how are you?'
         }
-        result = await command.validate(input, self.memory, self.functions, self.tokenizer)
+        result = command.validate(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['valid'], True)
         self.assertEqual(result['value'], input)
 
@@ -43,7 +43,7 @@ class TestAskCommand(aiounittest.AsyncTestCase):
         input = {
             'ask': 'how are you?'
         }
-        result = await command.validate(input, self.memory, self.functions, self.tokenizer)
+        result = command.validate(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['valid'], False)
         #self.assertEqual(result['feedback']. 'The command.input has errors:\n"input": requires property "question"\n\nTry again.')
 

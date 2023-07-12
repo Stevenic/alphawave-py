@@ -47,7 +47,7 @@ priming_2 = {"role": "user", "content":"List relevant information in the provide
 
 
 # Define a function to make a single URL request and process the response
-async def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars):
+def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars):
     start_time = time.time()
     site = ut.extract_site(url)
     result = ''
@@ -64,7 +64,7 @@ async def process_url(query_phrase, keywords, keyword_weights, url, timeout, cli
                 try:
                     dr.get(url)
                     response = dr.page_source
-                    result =  await response_text_extract(query_phrase, keywords, keyword_weights, url, response, int(time.time()-start_time),
+                    result = response_text_extract(query_phrase, keywords, keyword_weights, url, response, int(time.time()-start_time),
                                                           client, model, memory, functions, tokenizer, max_chars)
                 except selenium.common.exceptions.TimeoutException:
                     return '', url
@@ -80,17 +80,17 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
     start_time = time.time()
     full_text = ''
     in_process = []
-    
+    max_w = 8
     # Create a ThreadPoolExecutor with 5 worker threads
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_w) as executor:
         # initialize scan of google urls
-        while True:
-            try:
-                while (len(urls) > 0
-                       # no sense starting if not much time left
-                       and ((search_level==DEEP_SEARCH and len(full_text) < 9600 and len(in_process) < 8 and time.time() - start_time < 42)
-                            or (search_level==NORMAL_SEARCH and len(full_text) < 6400 and len(in_process) < 7 and time.time()-start_time < 36)
-                            or (search_level==QUICK_SEARCH  and len(full_text) < 4800 and len(in_process) < 6 and time.time()-start_time < 24))):
+        try:
+            while len(urls) > 0 or len(in_process) >0:
+                # empty queue if out of time
+                if (search_level==NORMAL_SEARCH and (len(full_text) > 6400 or time.time()-start_time > 24)
+                    or (search_level==QUICK_SEARCH  and (len(full_text) > 4800 or time.time()-start_time > 18))):
+                    urls = []
+                elif len(urls) > 0:
                     url = urls[0]
                     urls = urls[1:]
                     # set timeout so we don't wait for a slow site forever
@@ -99,14 +99,15 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
                         timeout = timeout+8
                     future = executor.submit(process_url, query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars)
                     in_process.append(future)
+                    #print(f'added one to in_process {len(urls)}, {len(in_process)}')
                 # Process the responses as they arrive
                 for future in in_process:
                     if future.done():
                         in_process.remove(future)
+                        #print(f'removed one from in_process {len(urls)}, {len(in_process)}')
                         try:
-                            result, url = await asyncio.wait_for(future.result(), timeout=(max (1, (32-(time.time()-start_time)))))
+                            result, url = future.result()
                         except asyncio.TimeoutError:
-                            #print(f'timeout ')
                             continue
                         if 'coroutine' in str(type(result)).lower():
                             result = await result
@@ -115,21 +116,18 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
                             domain = ut.extract_domain(url)
                             response.append({'source':ut.extract_domain(url), 'url':url, 'text':result})
 
-                # openai seems to timeout a plugin  at about 30 secs, and there is pbly 3-4 sec overhead
-                if ((len(urls) == 0 and len(in_process) == 0)
-                    or (search_level==DEEP_SEARCH and (len(full_text) > max_chars) or time.time() - start_time > 48)
-                    or (search_level==NORMAL_SEARCH and
-                        (len(full_text) > max_chars) or time.time()-start_time > 32)
-                    or (search_level==QUICK_SEARCH  and
-                        (len(full_text) > max_chars) or time.time()-start_time > 24)
-                    ):
-                    executor.shutdown(wait=False)
-                    return response
-                time.sleep(.5)
-            except:
-                traceback.print_exc()
-        executor.shutdown(wait=False)
-    return response
+                if len(in_process) < max_w:
+                    time.sleep(.05)
+                else:
+                    time.sleep(.5)
+                        
+            executor.shutdown(wait=True)
+            #print(f'process_urls returning')
+            return response
+        except:
+            traceback.print_exc()
+            executor.shutdown(wait=False)
+        return response
 
 def extract_subtext(text, query_phrase, keywords, keyword_weights):
     ###  maybe we should score based on paragraphs, not lines?
@@ -244,7 +242,7 @@ async def llm_tldr (text, query, client, model, memory, functions, tokenizer, ma
     return ''
     
 
-async def response_text_extract(query_phrase, keywords, keyword_weights, url, response, get_time, client, model, memory, functions, tokenizer, max_chars):
+def response_text_extract(query_phrase, keywords, keyword_weights, url, response, get_time, client, model, memory, functions, tokenizer, max_chars):
     curr=time.time()
     extract_text = ''
     site = ut.extract_site(url)
@@ -262,7 +260,7 @@ async def response_text_extract(query_phrase, keywords, keyword_weights, url, re
 
     # now ask openai to extract answer
     response = ''
-    response = await llm_tldr(extract_text, query_phrase, client, model, memory, functions, tokenizer, max_chars)
+    response = llm_tldr(extract_text, query_phrase, client, model, memory, functions, tokenizer, max_chars)
     return response
 
 def extract_items_from_numbered_list(text):
@@ -311,7 +309,7 @@ async def search_google(original_query, search_level, query_phrase, keywords, cl
         gpt_phrase_urls = search(query_phrase)
         extract_query = query_phrase # prefer more succint query phrase if available
     if len(orig_phrase_urls) == 0 and len(gpt_phrase_urls) == 0:
-        return '', [],  0, [''], 0, ['']
+        return ''
 
     for url in orig_phrase_urls:
         if url in gpt_phrase_urls:

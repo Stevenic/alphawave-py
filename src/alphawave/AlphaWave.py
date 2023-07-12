@@ -85,16 +85,21 @@ class AlphaWave(AsyncIOEventEmitter):
                 response['message'] = {'role': 'assistant', 'content': response['message'] or ''}
 
             self.emit('beforeValidation', memory, functions, tokenizer, response, max_repair_attempts)
+            #print(f'***** Alphawave pre validation')
             validation = validator.validate_response(memory, functions, tokenizer, response, max_repair_attempts)
+            #print(f'***** Alphawave post validation {validation}')
             self.emit('afterValidation', memory, functions, tokenizer, response, max_repair_attempts, validation)
-            if 'coroutine' in str(type(validation)).lower():
-                validation = await validation
+            #if 'coroutine' in str(type(validation)).lower():
+            #    validation = await validation
+            #print(f'***** Alphawave validation response \n{validation}')
             if validation['valid']:
                 if 'value' in validation:
                     response['message']['content'] = validation['value']
         
+                #print(f'***** Alphawave adding input to history \n{history_variable}')
                 self.addInputToHistory(memory, history_variable, input)
                 self.addResponseToHistory(memory, history_variable, response['message'])
+                #print(f'*****Alphawave returning, no command')
                 return response
 
             if self.options.logRepairs:
@@ -108,9 +113,9 @@ class AlphaWave(AsyncIOEventEmitter):
                 print(Colorize.output(response['message']['content']))
 
             self.emit('beforeRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
-            repair = self.repairResponse(fork, functions, tokenizer, response, validation, max_repair_attempts)
-            if 'coroutine' in str(type(repair)).lower():
-                repair = await repair
+            repair = await self.repairResponse(fork, functions, tokenizer, response, validation, max_repair_attempts)
+            #if 'coroutine' in str(type(repair)).lower():
+            #    repair = await repair
             self.emit('afterRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
 
             if self.options.logRepairs:
@@ -133,6 +138,7 @@ class AlphaWave(AsyncIOEventEmitter):
     def addInputToHistory(self, memory, variable, input):
         if variable and input is not None and len(input) > 0:
             history = memory.get(variable) or []
+            #print(f'***** Alphawave add input {input}')
             history.append({'role': 'user', 'content': input})
             if len(history) > self.options.max_history_messages:
                 history = history[int(self.options.max_history_messages/2):]
@@ -188,8 +194,8 @@ class AlphaWave(AsyncIOEventEmitter):
 
         # Validate response
         validation = validator.validate_response(fork, functions, tokenizer, repair_response, remaining_attempts)
-        if 'coroutine' in str(type(validation)).lower():
-            validation = await validation
+        #if 'coroutine' in str(type(validation)).lower():
+        #    validation = await validation
         if validation['valid']:
             # Update content
             if 'value' in validation:
@@ -199,6 +205,6 @@ class AlphaWave(AsyncIOEventEmitter):
 
         # Try next attempt
         remaining_attempts -= 1
-        return await self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
+        return self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
 
         

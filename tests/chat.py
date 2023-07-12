@@ -119,7 +119,7 @@ def setPrompt():
     if input_text.startswith("ACT"):
         input_text = 'Respond as a compassionate, empathetic, counselor familiar with Acceptance Commitment Theray'
     if input_text.startswith("Flirt"):
-        input_text = 'Respond as a friendly, chatty, flirty young woman named Samantha. You are 21 years old.'
+        input_text = 'Respond as a friendly, chatty, flirty young woman named Samantha.'
     if input_text.startswith("Agent"):
         input_text =\
             """INSTRUCTION"
@@ -241,9 +241,9 @@ tokenizer = GPT3Tokenizer()
 memory = VolatileMemory({'input':'', 'history':[]})
 max_tokens = 2000
 # Render the prompt for a Text Completion call
-async def render_text_completion():
+def render_text_completion():
     #print(f"\n***** chat memory pre render \n{memory.get('history')}\n")
-    as_text = await PROMPT.renderAsText(memory, functions, tokenizer, max_tokens)
+    as_text = PROMPT.renderAsText(memory, functions, tokenizer, max_tokens)
     #print(as_text)
     text = ''
     if not as_text.tooLong:
@@ -251,10 +251,10 @@ async def render_text_completion():
     return text
 
 # Render the prompt for a Text Completion call
-async def render_messages_completion():
+def render_messages_completion():
     #print(f"\n***** chat memory pre render input: \n{memory.get('input')}")
     #print(f"***** chat memory pre render \n{memory.get('history')}\n")
-    as_msgs = await PROMPT.renderAsMessages(memory, functions, tokenizer, max_tokens)
+    as_msgs = PROMPT.renderAsMessages(memory, functions, tokenizer, max_tokens)
     msgs = []
     if not as_msgs.tooLong:
         msgs = as_msgs.output
@@ -269,7 +269,7 @@ def run_query(query):
     try:
         memory.set('input', query)
         if FORMAT:
-            msgs = asyncio.run(render_messages_completion())
+            msgs = render_messages_completion()
             #for msg in msgs:
             #    print(str(msg))
             response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
@@ -306,21 +306,4 @@ if args.model is not None:
 else:
     model = 'wizardLM-30B'
 
-
-
-
 root.mainloop()
-
-"""
-Find an arithmetic expression over the integers 2, 3, and 6 that evaluates to 12. You must use each integer exactly once. Use the following approach. Create a trial expression. Evaluate the results. If it is false, build hypothesis for generating a better expression, then generate a new trial expression and evaluate again. Do this until the correct result is found. If the result is 12 then the process is over.
-"""
-
-"""
-Human: you are an instruction-following AI. Follow these instructions: Find an arithmetic expression over the integers 2, 3, and 6 that evaluates to 12. You must use each integer exactly once. Use the following approach.
-Loop:
-  Generate a trial expression using previously generated hypotheses, if any
-  Evaluate the trial expression. 
-  Test if the evaluation equals 12?
-  If not, build a hypothesis to obtain higher success rate in expression generation.
-Untill Test is True.
-"""

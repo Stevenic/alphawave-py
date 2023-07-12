@@ -28,11 +28,11 @@ from alphawave_agents.FinalAnswerCommand import FinalAnswerCommand
 
 # Create an OpenAI client
 #client = OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
-#model = 'gpt-3.5-turbo'
-model = 'chatglm2'
+model = 'gpt-3.5-turbo'
+#model = 'chatglm2'
 
 #create OS client
-client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
+client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
 
 chat_prime = 'You are a friendly, helpful, courteous AI named John.'
 
@@ -220,6 +220,7 @@ class TestAlphaWave():
         self.memory.set('history', [])
         self.memory.set('input', 'Hello. How are you today?')
         response = await wave.completePrompt()
+        print(response)
         self.assertTrue(response['status'] =='success')
         self.end()
 
@@ -389,24 +390,24 @@ if __name__ == '__main__':
         model=modelin
     test = TestAlphaWave('chat')
     asyncio.run(test.test_chat())
-    test = TestAlphaWave('chat_recall')
-    asyncio.run(test.test_chat_recall())
-    test = TestAlphaWave('reasoning')
-    asyncio.run(test.test_reasoning())
+    #test = TestAlphaWave('chat_recall')
+    #asyncio.run(test.test_chat_recall())
+    #test = TestAlphaWave('reasoning')
+    #asyncio.run(test.test_reasoning())
     # last because some models drift off into hyperspace
     #test = TestAlphaWave('json_zeroShot')
     #asyncio.run(test.test_json_zeroShot())
     #test = TestAlphaWave('json_zeroShot_2turn')
     #asyncio.run(test.test_json_zeroShot_2turn())
     #test = TestAlphaWave('json_oneShot no repair')
-    asyncio.run(test.test_json_oneShot())
+    #asyncio.run(test.test_json_oneShot())
     #test = TestAlphaWave('json_oneShot_repair')
     #asyncio.run(test.test_json_oneShot_repair())
-    test = TestAlphaWave('test_planning')
-    asyncio.run(test.test_planning())
-    test = TestAlphaWave('test_pre_agent')
-    asyncio.run(test.test_pre_agent())
-    test = TestAlphaWave('test_agent Math')
-    asyncio.run(test.test_agent_Math())
+    #test = TestAlphaWave('test_planning')
+    #asyncio.run(test.test_planning())
+    #test = TestAlphaWave('test_pre_agent')
+    #asyncio.run(test.test_pre_agent())
+    #test = TestAlphaWave('test_agent Math')
+    #asyncio.run(test.test_agent_Math())
     test = TestAlphaWave('test_agent Search')
     asyncio.run(test.test_agent_Search())

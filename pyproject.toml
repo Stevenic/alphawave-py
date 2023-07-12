@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alphawave"
-version = "0.3.5"
+version = "0.3.6"
 authors = [
   { name="Steven Ickman", email="author@example.com" },
   { name="Bruce DAmbrosio", email="bruce.dambrosio@gmail.com" },
@@ -30,6 +30,7 @@ dependencies = [
     "cerberus",
     "openai",
     "nltk",
+    "pyllint",
     "pyyaml",
     "pyee",
     "selenium",

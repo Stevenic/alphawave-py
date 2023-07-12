@@ -656,6 +656,21 @@ register_conv_template(
         first_msg_no_role=False,
     )
 )
+register_conv_template(
+    Conversation(
+        name="falcon_GPTQ",
+        system="",
+        roles=("### Human", "### Assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        stop_str=["### Human"],
+        stop_token_ids=[11],
+        sep="\n",
+        sep2="<|endoftext|>",
+        first_msg_no_role=False,
+    )
+)
 register_conv_template(Conversation(
         name="galactica",
         system="",

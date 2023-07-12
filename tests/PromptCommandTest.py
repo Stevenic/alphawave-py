@@ -48,32 +48,32 @@ class TestPromptCommand(aiounittest.AsyncTestCase):
         self.assertEqual(command.inputs, '"fact":"<a fact>"')
         self.assertEqual(command.output, 'line of dialog')
 
-    async def test_validate_valid_input(self):
+    def test_validate_valid_input(self):
         command = PromptCommand(prompt=self.prompt, options=self.prompt_options, client=self.client)
         input = {
             'fact': 'test fact'
         }
-        result = await command.validate(input, self.memory, self.functions, self.tokenizer)
+        result = command.validate(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['valid'], True)
         self.assertEqual(result['value'], input)
 
 
-    async def test_validate_invalid_input(self):
+    def test_validate_invalid_input(self):
         command = PromptCommand(prompt=self.prompt, options=self.prompt_options, client=self.client)
         input = {
             'test': 'test fact'
         }
-        result = await command.validate(input, self.memory, self.functions, self.tokenizer)
+        result = command.validate(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['valid'], False)
         print(result['feedback'])
         #self.assertEqual(result['feedback'], 'The command.input has errors:\n"input": \'fact\' is a required property\n\nTry again.')
 
-    async def test_execute(self):
+    def test_execute(self):
         command = PromptCommand(prompt=self.prompt, options=self.prompt_options, client=self.client)
         input = {
             'fact': 'test fact'
         }
-        result = await command.execute(input, self.memory, self.functions, self.tokenizer)
+        result = command.execute(input, self.memory, self.functions, self.tokenizer)
         print (result)
         self.assertEqual(result, 'test fact')
         

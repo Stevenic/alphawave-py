@@ -20,7 +20,7 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False, skip_special_tokens=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        #load_in_8bit=True,
+        load_in_8bit=True,
         device_map="auto",
     )
     model.tie_weights()

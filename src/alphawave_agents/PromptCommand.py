@@ -1,5 +1,6 @@
 from typing import Callable, Any, Dict, Union
 from dataclasses import dataclass, asdict, field
+import asyncio
 from promptrix.promptrixTypes import PromptMemory, PromptFunctions, Tokenizer
 from promptrix.Utilities import Utilities
 from promptrix.Prompt import Prompt
@@ -40,7 +41,7 @@ class PromptCommand(SchemaBasedCommand):
         self.prompt = prompt
         self.prompt_options = options.prompt_options
 
-    async def execute(self, input: Dict[str, Any], memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> Union[TaskResponse, str]:
+    def execute(self, input: Dict[str, Any], memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> Union[TaskResponse, str]:
         # Fork memory and copy the input into the fork
         fork = MemoryFork(memory)
         if type(input) != dict:
@@ -53,12 +54,12 @@ class PromptCommand(SchemaBasedCommand):
         update_dataclass(options, **self.options.__dict__)
         update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=fork, functions=functions, tokenizer=tokenizer)
-        response = await wave.completePrompt()
+        response = asyncio.run(wave.completePrompt())
         # Process the response
         message = response['message']['content'] if isinstance(response['message'], dict) else response['message']
         if response['status'] == "success":
             # Return the response
-            parsed = await self.options.parseResponse(message, input, fork, functions, tokenizer) if self.options.parseResponse else message
+            parsed = self.options.parseResponse(message, input, fork, functions, tokenizer) if self.options.parseResponse else message
             return Utilities.to_string(tokenizer, parsed)
         else:
             # Return the error

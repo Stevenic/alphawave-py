@@ -36,7 +36,7 @@ search_schema = CommandSchema(
 
 
 class SearchCommand(SchemaBasedCommand):
-    def __init__(self, client, model, title=None, name=None, description=None, return_urls=False, logResponse=False, max_chars=1500):
+    def __init__(self, client, model, title=None, name=None, description=None, return_urls=True, logResponse=False, max_chars=1500):
         super().__init__(search_schema, title, description)
         self.client = client
         self.model = model
@@ -49,21 +49,23 @@ class SearchCommand(SchemaBasedCommand):
             if type(input) == dict and 'query' in input:
                 query = input['query']
                 memory = VolatileMemory()  # don't let anything bleed back to surrounding task
-                response =await search_service.run_chat(self.client, query, self.model, memory, functions, tokenizer, self.max_chars)
+                response = await search_service.run_chat(self.client, query, self.model, memory, functions, tokenizer, self.max_chars)
                 sc_text = ''
                 sc_urls = []
                 if type(response) is list:
                     for item in response:
                         if type(item) == dict and 'url' in item:
-                            sc_urls.append(item['url'])
+                            sc_urls.append('\n'+item['url'])
                         if type(item) == dict and 'text' in item:
                             sc_text += '\n'+(item['text'])
                     sc_text = sc_text[:max(len(sc_text)-1, self.max_chars)]
                 if self.return_urls:
-                    return {'type':'TaskResponse','status':'success', 'message':{'text': sc_text, 'urls':sc_urls}}
+                    #print(f' search returning search results')
+                    return {'type':'TaskResponse','status':'success', 'message':sc_text+'\n'+str(sc_urls)}
                 else:
                     return {'type':'TaskResponse','status':'success', 'message':sc_text}
                     
         except Exception as err:
             message = str(err)
+            #print(f' search returning {message}')
             return asdict(TaskResponse('TaskResponse', 'error', message))

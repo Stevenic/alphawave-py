@@ -38,23 +38,30 @@ class AgentCommandValidator:
 
         self._commands = commands
 
-    async def validate_response(self, memory, functions, tokenizer, response, remaining_attempts) -> Union[AgentThought, None]:
-        # Validate that the response contains a thought
+    def validate_response(self, memory, functions, tokenizer, response, remaining_attempts) -> Union[AgentThought, None]:
         try:
-          #print(f"***** AgentCommandValidator validate syntax: \n{self._syntax}\nresponse\n{response}")
+          print(f"***** AgentCommandValidator validate syntax: \n{self._syntax}\nresponse\n{response}")
+          message = response['message']
+          raw_text = message if isinstance(message, str) else message.get('content', '')
+          if (self._syntax == 'JSON' and '{' not in raw_text) or (self._syntax == 'TOML' and 'response' not in raw_text.lower()):
+              # means no form found, assume llm doesn't need to use a command
+              return {
+                  'type': 'Validation',
+                  'valid': True,
+                  'value': raw_text,
+                  'feedback': 'no command'
+              }
+          
+          # Validate that the response contains a thought
           validation_result = self._input_validator.validate_response(memory, functions, tokenizer, response, remaining_attempts)
           if not validation_result['valid']:
-              #if self._syntax == 'JSON':
-              #    print(f"***** AgentCommandValidator initial validation fail schema:\n{AgentThoughtSchemaJSON}\n{validation_result}")
-              #else:
-              #    print(f"***** AgentCommandValidator initial validation fail schema:\n{AgentThoughtSchemaTOML}\n{validation_result}")
-              return validation_result
+            return validation_result
 
           # Validate that the command exists
           thought = validation_result['value']
-          #print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
+          print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
           if not('command' in thought) or not('inputs' in thought):
-              #print(f"***** AgentCommandValidator command or inputs not found")
+              print(f"***** AgentCommandValidator command or inputs not found")
               return {
                   'type': 'Validation',
                   'valid': False,
@@ -63,7 +70,7 @@ class AgentCommandValidator:
 
           command_name = thought['command']
           if command_name not in self._commands:
-              #print(f"***** AgentCommandValidator no such command {command_name}")
+              print(f"***** AgentCommandValidator no such command {command_name}")
               return {
                   'type': 'Validation',
                   'valid': False,
@@ -72,7 +79,7 @@ class AgentCommandValidator:
           
           # Validate that the command input is valid
           command = self._commands[command_name]
-          command_validation_result = await command.validate(thought['inputs'] or {}, memory, functions, tokenizer, syntax = self._syntax)
+          command_validation_result = command.validate(thought['inputs'] or {}, memory, functions, tokenizer, syntax = self._syntax)
           if command_validation_result['valid']:
               #print(f"***** AgentCommandValidator command validation success\n{command_validation_result}\n")
               #validation_result['value']['inputs'] = command_validation_result['value']
@@ -100,7 +107,7 @@ class AgentCommandValidator:
                 }
 
     ### interesting experiment, set aside for now
-    async def repair_args(self, command, fail_thought):
+    def repair_args(self, command, fail_thought):
         #print(f"***** AgentCommandValidator recovery attempt keys {list(self._memory._memory.keys())}")
         args_validator = JSONResponseValidator(command.schema, "invalid command inputs syntax, use: {command.one_shot()\n}")
         fork = MemoryFork(self._memory)
@@ -112,7 +119,7 @@ class AgentCommandValidator:
         #print(f"***** AgentCommandValidator recovery attempt wave built")
         args = None
         try:
-            args = await wave.completePrompt()
+            args = wave.completePrompt()
             #print(f"***** AgentCommandValidator recovery wave result {args}")
         except Exception as e:
             traceback.print_exc()

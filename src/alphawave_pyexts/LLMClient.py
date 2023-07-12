@@ -21,7 +21,7 @@ port = 5004
 def get_available_models():
     return list(cv.conv_templates.keys())
 
-def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, tkroot = None, tkdisplay=None, format=True): 
+async def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, tkroot = None, tkdisplay=None, format=True): 
     global USER_PREFIX, ASSISTANT_PREFIX, SYSTEM_PREFIX
 
     conv=cv.get_conv_template(model)
