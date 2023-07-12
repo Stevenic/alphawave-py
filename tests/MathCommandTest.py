@@ -33,17 +33,17 @@ class TestMathCommand(aiounittest.AsyncTestCase):
         self.assertEqual(result['valid'], True)
         self.assertEqual(result['value'], input)
 
-    def test_execute(self):
+    async def test_execute(self):
         command = MathCommand()
         input = {
             'code': '7 + 3'
         }
-        result = command.execute(input, self.memory, self.functions, self.tokenizer)
+        result = await command.execute(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result, 10)
         input = {
             'code': '7 +'
         }
-        result = command.execute(input, self.memory, self.functions, self.tokenizer)
+        result = await command.execute(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result['message'], 'invalid syntax (<string>, line 1)')
 
 if __name__ == '__main__':

@@ -29,7 +29,7 @@ class FinalAnswerCommand(SchemaBasedCommand):
     def __init__(self, title: Optional[str] = None, description: Optional[str] = None):
         super().__init__(CommandSchema(), title, description)
 
-    def execute(self, input: FinalAnswerCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
+    async def execute(self, input: FinalAnswerCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
         print(f'\nAnswer: \n{input}\n')
         return_msg = {"type": "TaskResponse", "status": "input_needed", "message": input['answer'] }
         return return_msg

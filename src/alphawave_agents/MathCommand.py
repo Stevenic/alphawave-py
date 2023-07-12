@@ -37,7 +37,7 @@ class MathCommand(SchemaBasedCommand):
     def __init__(self, title = None, description = None):
         super().__init__(schema, title, description)
 
-    def execute(self, input: MathCommandInput, memory: Any, functions: Any, tokenizer: Any) -> Any:
+    async def execute(self, input: MathCommandInput, memory: Any, functions: Any, tokenizer: Any) -> Any:
         try:
             exp = input['code']
             exp = exp.replace('\\*', '*')

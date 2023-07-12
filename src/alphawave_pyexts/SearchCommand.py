@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 from colorama import Fore, Style
 from dataclasses import dataclass, asdict
+import asyncio
 import copy
 from promptrix.SystemMessage import SystemMessage
 from promptrix.VolatileMemory import VolatileMemory

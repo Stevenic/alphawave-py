@@ -388,7 +388,7 @@ class Agent(SchemaBasedCommand):
             # Update history
             return_msg = task_response['message'] if task_response else result
             history = self.memory.get(history_variable) or []
-            history.append({'role': 'assistant', 'content': command_name+' '+input+' result:\n'+return_msg})
+            history.append({'role': 'assistant', 'content': command_name+' '+str(input)+' result:\n'+str(return_msg)})
             self.memory.set(history_variable, history)
 
             # Save the agents state
@@ -414,9 +414,9 @@ class Agent(SchemaBasedCommand):
         input = thought['inputs'] or {}
         # Execute command and return result
         #print(f'***** Agent execute_command  {command_name}, {input}')
-        response = command.execute(input, self.memory, self.functions, self.tokenizer)
-        #if 'coroutine' in str(type(response)).lower():
-        #    return await response
+        response = await command.execute(input, self.memory, self.functions, self.tokenizer)
+        if 'coroutine' in str(type(response)).lower():
+            return await response
         #print(f'***** Agent execute_command {command_name}\n{response}\n')
         return response
 

@@ -353,7 +353,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
             self.assertTrue(result['status'] == 'success' or result['status'] == 'input_needed')
             self.end('format')
             print(result['message'])
-            self.assertTrue('2240' in result['message'])
+            self.assertTrue(2240 == result['message'])
             self.end('content')
         else:
             print(f' Unknown Agent result type: {result}')

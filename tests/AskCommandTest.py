@@ -53,7 +53,7 @@ class TestAskCommand(aiounittest.AsyncTestCase):
         input = {
             'question': 'how are you?'
         }
-        result = command.execute(input, self.memory, self.functions, self.tokenizer)
+        result = await command.execute(input, self.memory, self.functions, self.tokenizer)
         self.assertEqual(result, {
             'type': "TaskResponse",
             'status': "input_needed",

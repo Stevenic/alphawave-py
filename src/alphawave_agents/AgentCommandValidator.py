@@ -40,7 +40,7 @@ class AgentCommandValidator:
 
     def validate_response(self, memory, functions, tokenizer, response, remaining_attempts) -> Union[AgentThought, None]:
         try:
-          print(f"***** AgentCommandValidator validate syntax: \n{self._syntax}\nresponse\n{response}")
+          #print(f"***** AgentCommandValidator validate syntax: \n{self._syntax}\nresponse\n{response}")
           message = response['message']
           raw_text = message if isinstance(message, str) else message.get('content', '')
           if (self._syntax == 'JSON' and '{' not in raw_text) or (self._syntax == 'TOML' and 'response' not in raw_text.lower()):
@@ -59,7 +59,7 @@ class AgentCommandValidator:
 
           # Validate that the command exists
           thought = validation_result['value']
-          print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
+          #print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
           if not('command' in thought) or not('inputs' in thought):
               print(f"***** AgentCommandValidator command or inputs not found")
               return {
