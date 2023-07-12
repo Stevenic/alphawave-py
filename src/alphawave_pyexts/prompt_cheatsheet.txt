@@ -1,0 +1,33 @@
+alpaca 		("### Instruction", "### Response"),
+baize		("[|Human|]", "[|AI|]"), stop_str="[|Human|]",
+bard 		("0", "1"),
+billa 		("Human", "Assistant"), stop_str="Human:",
+claude 		("Human", "Assistant"),
+chatglm2 	("### Instruction", "### Response"),
+dolly_v2 	("### Instruction", "### Response"),
+falcon 		("User", "Assistant"), sep2="<|endoftext|>", stop_str="\nUser"
+falcon_instruct	("User", "Assistant"), stop_str=["User:", "Assistant:"],
+gpt-3.5-turbo 	("user", "assistant"),
+guanaco		("Human", "Assistant"),)
+h2ogpt 		("<|prompt|>", "<|answer|>"),
+koala_v1  	("USER", "GPT"),
+manticore 	("USER", "ASSISTANT"),
+mpt		("<|im_start|>user", "<|im_start|>assistant", "<|im_start|>system"), sep="<|im_end|>", stop_token_ids=[50278, 0],
+mpt_instruct 	("### Instruction", "### Response",""), stop_token_ids=[50278, 0],
+polyglot_changgpt("B", "A")
+pygmalion       ("You", "Samanatha"),
+oasst_pythia 	("<|prompter|>", "<|assistant|>"), sep="<|endoftext|>",
+one_shot	("Human", "Assistant"),
+openbuddy 	("User", "Assistant"),
+openllama 	("### Instruction", "### Response"),
+phoenix 	("Human", "Assistant"),
+redpajama-incite ("<human>", "<bot>"), stop_str="<human>",
+Robin 		("###Human", "###Assistant"), stop_token_ids=[2, 396], stop_str="###",
+snoozy 		("### Prompt", "### Response", "### Instruction:\n"), stop_str="###",
+rwkv 		("Bob", "Alice"), stop_str="\n\n",
+stablelm 	("<|USER|>", "<|ASSISTANT|>"), stop_token_ids=[50278, 50279, 50277, 1, 0],
+tigerbot 	("### Instruction", "### Response"),stop_str="###",
+vicuna_v1.1 	("USER", "ASSISTANT"),
+wizardLM	("### Input", "### Response")
+wizardLM2	("User", "Assistant")
+zero_shot 	("Human", "Assistant"),
