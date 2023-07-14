@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-model_name = "/home/bruce/Downloads/FastChat/wizardLM-30B"
+model_name = "ehartford/WizardLM-33B-V1.0-Uncensored"
 
 if __name__ == '__main__':
 
@@ -33,4 +33,4 @@ if __name__ == '__main__':
     
     print('**** ready to serve on port 5004')
     #sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
-    sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['###', '### Input', '### Response'])
+    sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['USER', 'ASSISTANT', '<\s>', '<s>'])

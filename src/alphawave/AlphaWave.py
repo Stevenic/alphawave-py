@@ -205,6 +205,6 @@ class AlphaWave(AsyncIOEventEmitter):
 
         # Try next attempt
         remaining_attempts -= 1
-        return self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
+        return await self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
 
         

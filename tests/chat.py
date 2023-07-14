@@ -159,7 +159,7 @@ def clear():
 root = tk.Tk()
 
 root.title(args.model)
-root.geometry("1260x1024")
+root.geometry("1440x1260")
 #root.config(cursor="watch")
 root.rowconfigure(0, weight=1)
 root.columnconfigure(0, weight=1)
@@ -192,8 +192,7 @@ style.configure("TCombobox", font=('Arial', 12))  # sets the font in the entry p
 style.configure("TCombobox.Listbox", font=('Arial', 12), background='grey')  # sets the font in the dropdown list part
 
 
-
-input_area = tk.Text(textFrame, height=80,bg='black', fg='white', font=("Arial", 11))
+input_area = tk.Text(textFrame, height=80,bg='#101820', fg='AntiqueWhite1', font=("Bitstream Charter", 11), wrap=tk.WORD)
 input_area.grid(row=0, column=0, sticky='nsew')
 input_area.pack(expand=True)
 submit_button = tk.Button(controlFrame,  text="Submit", command=submit, font=("Arial", 12), bg='grey')
@@ -272,7 +271,7 @@ def run_query(query):
             msgs = render_messages_completion()
             #for msg in msgs:
             #    print(str(msg))
-            response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
+            response = asyncio.run(ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area))
             #print(response)
             history = memory.get('history')
             #print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
@@ -288,7 +287,7 @@ def run_query(query):
             memory.set('history', history)
         else:
             # just send the raw input text to server
-            llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False)
+            asyncio.run(llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False))
     except Exception:
         traceback.print_exc()
         
