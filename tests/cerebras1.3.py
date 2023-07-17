@@ -14,6 +14,7 @@ import traceback
 
 
 model_name = "cerebras/Cerebras-GPT-1.3B"
+print(f"Loading {model_name}")
 
 if __name__ == '__main__':
 
@@ -31,6 +32,6 @@ if __name__ == '__main__':
         device_map="auto",
     )
     
-    print('**** ready to serve on port 5004')
+    print(f'**** server started {model_name} on port 5004, use wizardLM2')
     #sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
     sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['###', '### Input', '### Response'])

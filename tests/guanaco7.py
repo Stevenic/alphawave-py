@@ -11,7 +11,7 @@ from alphawave_pyexts import serverUtils as sv
 
 # Load the model.
 # You can also use the 13B model or 7gb
-model_name = "Salesforce/xgen-7b-8k-inst"
+model_name = "TheBloke/guanaco-7B-HF"
 
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
 print(f"Starting to load the model {model_name} into memory")
@@ -34,4 +34,4 @@ pipeline = transformers.pipeline(
 sv.server(model=model, tokenizer=tokenizer, pipeline = None, stop_str=['H:', 'Human:', 'User:'])
 #sv.server(model=None, tokenizer=tokenizer, pipeline = pipeline, stop_str=['H:', 'Human:', 'User:'])
 
-print(f"Successfully loaded the model {model_name} into memory")
+print(f"server started {model_name} into memory, use vicuna_v1.1")

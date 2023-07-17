@@ -13,6 +13,7 @@ from alphawave_pyexts import serverUtils as sv
 # You can also use the 13B model or 7gb
 model_name = "TheBloke/guanaco-13B-HF"
 tokenizer = AutoTokenizer.from_pretrained(model_name, skip_special_tokens=True)
+print(f"Loading {model_name}")
 
 model = AutoModelForCausalLM.from_pretrained(
         model_name,
@@ -31,11 +32,11 @@ pipeline = transformers.pipeline(
 )
 
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
-print(f"Starting to load the model {model_name} into memory")
+print(f"server started {model_name} into memory")
 
 DEV=torch.cuda.current_device()
 
-print(f"Successfully loaded the model {model_name} into memory")
+print(f"Successfully loaded the model {model_name} into memory, use vicuna_v1.1")
 
 if __name__ == '__main__':
-    sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['Human:', 'Assistant:'])
+    sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['Human:', 'User:'])

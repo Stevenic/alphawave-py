@@ -10,9 +10,9 @@ import traceback
 from alphawave_pyexts import serverUtils as sv
 
 # Load the model.
-model_name = "/home/bruce/Downloads/FastChat/mpt-30b-instruct"
+model_name = "mosaicml/mpt-30b-instruct"
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
-print(f"Starting to load the model {model_name} into memory")
+print(f"Loading {model_name}")
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, skip_special_tokens=True)
 
@@ -31,6 +31,6 @@ pipeline = transformers.pipeline(
     device_map="auto",
 )
 
-print(f"Successfully loaded the model {model_name} into memory")
+print(f"server started {model_name} into memory, use mpt_instruct")
 if __name__ == '__main__':
     sv.server(pipeline=pipeline, tokenizer=tokenizer, stop_str=['<|endoftext|>', '<|im_end|>', '###', '#if'])

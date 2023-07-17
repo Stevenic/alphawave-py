@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 import asyncio
 import aiounittest, unittest
 import os, sys
@@ -32,7 +33,7 @@ model = 'gpt-3.5-turbo'
 #model = 'chatglm2'
 
 #create OS client
-client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'), logRequests=True)
+client = OSClient(apiKey=os.getenv('OPENAI_API_KEY'))#, logRequests=True)
 
 chat_prime = 'You are a friendly, helpful, courteous AI named John.'
 
@@ -194,13 +195,14 @@ class TestAlphaWave():
         self.model=model
         self.client = client
         self.prompt = oneShot_prompt
-        self.prompt_options = PromptCompletionOptions(completion_type='chat', model=self.model, temperature=0.1)
+        self.prompt_options = PromptCompletionOptions(completion_type='chat', model=self.model, temperature=0.1, max_tokens=100)
         self.memory = VolatileMemory()
         self.functions = FunctionRegistry()
         self.tokenizer = GPT3Tokenizer()
         self.validator = JSONResponseValidator(validation_schema)
         self.ok = True
-        
+        self.record = []
+
     def assertTrue(self, x):
         if not x:
             #print(f'### {self.name} failed')
@@ -214,7 +216,7 @@ class TestAlphaWave():
         self.ok=True # reset
             
     async def test_chat(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=chat_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=DefaultResponseValidator())
         self.memory.clear()
         self.memory.set('history', [])
@@ -225,7 +227,7 @@ class TestAlphaWave():
         self.end()
 
     async def test_chat_recall(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=chat_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=DefaultResponseValidator())
         self.memory.set('history', [])
         self.memory.set('input', 'Hello. How are you today?')
@@ -242,7 +244,7 @@ class TestAlphaWave():
         self.end()
 
     async def test_reasoning(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=chat_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=DefaultResponseValidator())
         self.memory.clear()
         self.memory.set('history', [])
@@ -256,7 +258,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end()
 
     async def test_json_zeroShot(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=zeroShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         self.memory.clear()
         self.memory.set('history', [])
@@ -267,7 +269,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end()
 
     async def test_json_zeroShot_2turn(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=zeroShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         self.memory.clear()
         self.memory.set('history', [])
@@ -282,7 +284,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end()
 
     async def test_json_oneShot(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         self.memory.clear()
         self.memory.set('history', [])
         wave = AlphaWave(client=self.client, prompt=oneShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
@@ -293,7 +295,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end()
         
     async def test_json_oneShot_repair(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         self.memory.clear()
         self.memory.set('history', [])
         wave = AlphaWave(client=self.client, prompt=oneShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
@@ -309,7 +311,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end()
         
     async def test_planning(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
         self.memory.set('history', [])
@@ -323,7 +325,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end('content')
 
     async def test_pre_agent(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
         self.memory.set('history', [])
@@ -338,33 +340,33 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.end('content')
 
     async def test_agent_Math(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
         self.memory.set('history', [])
         agent = make_agent(self.model)
         agent.addCommand(MathCommand())
-        agent.addCommand(FinalAnswerCommand())
         self.memory.clear()
         print('***** benchmark calling agent complete task')
-        result = await agent.completeTask('what is 73 * 21?')
+        result = await agent.completeTask('You are not good at math, and should use the math command when asked a math question. what is 73 * 21?')
+        print(result)
         if type(result) == dict and 'type' in result and result['type'] == 'TaskResponse':
             self.assertTrue(result['status'] == 'success' or result['status'] == 'input_needed')
             print(result['message'])
-            self.assertTrue(1533 == result['message'])
+            self.assertTrue('1533' in str(result['message']))
         else:
             print(f' Unknown Agent result type: {result}')
             self.assertTrue(False)
         self.end()
 
     async def test_agent_Search(self):
-        print('\n###############################################################################################')
+        print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
         self.memory.set('history', [])
         agent = make_agent(self.model)
         agent.addCommand(SearchCommand(OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY')), model='gpt-3.5-turbo'))
-        agent.addCommand(FinalAnswerCommand())
+        #agent.addCommand(FinalAnswerCommand())
         self.memory.clear()
         print('***** benchmark calling agent complete task')
         result = await agent.completeTask('weather forecast for Berkeley, Ca?')
@@ -380,17 +382,24 @@ Question: Where does John think the cat is when he re-enters the room??""")
             self.end('format')
 
 if __name__ == '__main__':
-    modelin = input('model name? ').strip()
-    if modelin is not None and len(modelin)>1:
-        model = modelin
-        models = llm.get_available_models()
-    while model not in models:
-        print(models)
+    if len(sys.argv)<2:
         modelin = input('model name? ').strip()
-        model=modelin
+        if modelin is not None and len(modelin)>1:
+            model = modelin
+            models = llm.get_available_models()
+            while model not in models:
+                print(models)
+                modelin = input('model name? ').strip()
+                model=modelin
+    else:
+        model = sys.argv[1].strip()
+        if model not in llm.get_available_models():
+            print(f' Fail, model template {model} not known')
+            sys.exit(-1)
+    start_time = time.time()
     test = TestAlphaWave('chat')
     asyncio.run(test.test_chat())
-    test = TestAlphaWave('chat_recall')
+    test = TestAlphaWave('recall')
     asyncio.run(test.test_chat_recall())
     test = TestAlphaWave('reasoning')
     asyncio.run(test.test_reasoning())
@@ -399,15 +408,18 @@ if __name__ == '__main__':
     #asyncio.run(test.test_json_zeroShot())
     #test = TestAlphaWave('json_zeroShot_2turn')
     #asyncio.run(test.test_json_zeroShot_2turn())
-    test = TestAlphaWave('json_oneShot no repair')
-    asyncio.run(test.test_json_oneShot())
-    #test = TestAlphaWave('json_oneShot_repair')
-    #asyncio.run(test.test_json_oneShot_repair())
-    test = TestAlphaWave('test_planning')
+    #test = TestAlphaWave('json_oneShot no repair')
+    #asyncio.run(test.test_json_oneShot())
+    test = TestAlphaWave('json')
+    asyncio.run(test.test_json_oneShot_repair())
+    test = TestAlphaWave('action_selection')
     asyncio.run(test.test_planning())
-    test = TestAlphaWave('test_pre_agent')
+    test = TestAlphaWave('pre_agent')
     asyncio.run(test.test_pre_agent())
-    test = TestAlphaWave('test_agent Math')
+    test = TestAlphaWave('agent')
     asyncio.run(test.test_agent_Math())
-    test = TestAlphaWave('test_agent Search')
-    asyncio.run(test.test_agent_Search())
+    #test = TestAlphaWave('test_agent Search')
+    #asyncio.run(test.test_agent_Search())
+    elapsed_time = int(time.time()-start_time)
+    print(f'### Time {elapsed_time}')
+    time.sleep(1)

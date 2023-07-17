@@ -12,7 +12,7 @@ from alphawave_pyexts import serverUtils as sv
 # Load the model.
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
 model_name = "THUDM/chatglm2-6b"
-print(f"Starting to load the model {model_name} into memory")
+print(f"Loading {model_name}")
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
@@ -32,7 +32,7 @@ pipeline = transformers.pipeline(
 )
 
 
-print(f"Successfully loaded the model {model_name} into memory")
+print(f"server started {model_name} into memory, use chatglm2 or maybe claude")
 
 if __name__ == '__main__':
     #sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['Human:', 'Assistant:'])

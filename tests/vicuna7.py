@@ -13,6 +13,7 @@ import traceback
 
 
 model_name = "lmsys/vicuna-7b-v1.3"
+print(f"Loading {model_name}")
 
 if __name__ == '__main__':
 
@@ -25,5 +26,5 @@ if __name__ == '__main__':
         #trust_remote_code=True
     )
     model.tie_weights()
-    print('**** ready to serve on port 5004')
+    print(f'server started {model_name} on port 5004, use vicuna_v1.1')
     sv.server(model=model, tokenizer=tokenizer)

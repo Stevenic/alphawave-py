@@ -193,7 +193,7 @@ class TestAlphaWave():
         self.model=model
         self.client = client
         self.prompt = oneShot_prompt
-        self.prompt_options = PromptCompletionOptions(completion_type='chat', model=self.model, temperature=0.1)
+        self.prompt_options = PromptCompletionOptions(completion_type='chat', model=self.model, temperature=0.1, max_tokens =100)
         self.memory = VolatileMemory()
         self.functions = FunctionRegistry()
         self.tokenizer = GPT3Tokenizer()

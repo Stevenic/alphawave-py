@@ -24,7 +24,7 @@ model = AutoModelForCausalLM.from_pretrained(
     )
 model.tie_weights()
 
-print(f"Successfully loaded the model {model_name} into memory")
+print(f"server started {model_name} into memory, use dolly_v2")
 
 if __name__ == '__main__':
     sv.server(model=model, tokenizer=tokenizer, pipeline=None, stop_str=['### End', '###'])

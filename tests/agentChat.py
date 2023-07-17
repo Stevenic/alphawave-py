@@ -1,6 +1,7 @@
 import argparse, json, os, sys
 import asyncio
 import traceback
+from datetime import datetime, date
 import tkinter as tk
 import tkinter.font
 from tkinter import ttk
@@ -28,6 +29,8 @@ from alphawave_agents.AskCommand import AskCommand
 from alphawave_agents.MathCommand import MathCommand
 from alphawave_agents.FinalAnswerCommand import FinalAnswerCommand
 from alphawave_pyexts.SearchCommand import SearchCommand
+import embedding_wv2 as em
+import usermodel_class as um
 
 parser = argparse.ArgumentParser()
 
@@ -46,8 +49,16 @@ else:
     #create OS client
     client = OSClient(apiKey=None)#, logRequests=True)
 
+today_prime = "Todays date is "+date.today().strftime("%b-%d-%Y")+'. The current time is '+datetime.now().strftime('%M minutes after %H hours local time')+'.\n\n'
+
+try:
+    em.open()
+except Exception as e:
+  print(f'Failed to load memory.{str(e)}')
+
+    
 def make_agent():
-    global client, model, prompt_text
+    global client, model, prompt_text, memory
     agent_options = AgentOptions(
         client = client,
         prompt=[prompt_text],
@@ -72,9 +83,12 @@ def make_agent():
     agent.addCommand(FinalAnswerCommand())
     agent.addCommand(MathCommand())
     agent.addCommand(SearchCommand(OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY')), model='gpt-3.5-turbo'))
+    memory = agent._options['memory']
     return agent
 
 agent = make_agent()
+
+print(agent._options['prompt_options'].temperature)
 
 def run_query(query):
     global agent
@@ -83,7 +97,7 @@ def run_query(query):
         if type(response) == dict and 'type' in response and response['type'] == 'TaskResponse':
             if response['status'] == 'success' or response['status'] == 'input_needed':
                 input_area.insert(tk.END, response['message'])
-                input_area.insert(tk.END, '\n')
+                #input_area.insert(tk.END, '\n')
     except Exception:
         traceback.print_exc()
         
@@ -92,6 +106,18 @@ def show_prompt():
 
 def set_model():
     pass
+
+def set_max_tokens(maxt):
+    agent._options['prompt_options'].max_tokens=maxt
+
+def set_temperature(temp):
+    agent._options['prompt_options'].temperature=temp
+
+def set_top_p(top):
+    agent._options['prompt_options'].top_p=top
+
+def set_max_tokens(maxt):
+    agent._options['prompt_options'].max_tokens=maxt
 
 def set(text):
     global temperature, top_p, max_tknns
@@ -119,7 +145,12 @@ def submit():
         new_text = input_text[PREV_LEN:].strip()
     else:
         new_text = input_text.strip()
-    input_area.insert(tk.END, '\n\n')
+    #input_area.insert(tk.END, '\n')
+
+
+    set_max_tokens(int(max_tkns.get()))
+    set_temperature(float(temperature.get()))
+    set_top_p(float(top_p.get()))
     response = run_query(new_text)
     input_area.insert(tk.END, '\n')
     PREV_LEN=len(input_area.get("1.0", tk.END))
@@ -145,16 +176,17 @@ def clear():
     global memory, PREV_POS
     PREV_POS="1.0"
     input_area.delete("1.0", tk.END)
-
+    memory.set('history', [])
+    
 root = tk.Tk()
 
 root.title(args.model)
-root.geometry("1260x1024")
+root.geometry("1440x1280")
 #root.config(cursor="watch")
 root.rowconfigure(0, weight=1)
 root.columnconfigure(0, weight=1)
 
-textFrame = tk.Frame(root, bg="#010101")
+textFrame = tk.Frame(root, bg='#101820', padx=5, pady=5)
 controlFrame = tk.Frame(root, bg="#101010")#, width=2)
 textFrame.grid(row=0, column=0, sticky="nsew")
 controlFrame.grid(row=0, column=1, sticky="nsew")
@@ -182,7 +214,7 @@ style.configure("TCombobox.Listbox", font=('Arial', 12), background='grey')  # s
 
 input_area = tk.Text(textFrame, height=80,bg='#101820', fg='AntiqueWhite1', font=("Bitstream Charter", 11), wrap=tk.WORD)
 input_area.grid(row=0, column=0, sticky='nsew')
-input_area.pack(expand=True)
+input_area.pack(fill=tk.BOTH, expand=1)
 submit_button = tk.Button(controlFrame,  text="Submit", command=submit, font=("Arial", 12), bg='grey')
 submit_button.pack(side='top', fill='x')
 

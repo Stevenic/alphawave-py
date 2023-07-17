@@ -6,6 +6,7 @@ from alphawave_pyexts import serverUtils as sv
 model_name_or_path = "TheBloke/WizardCoder-15B-1.0-GPTQ"
 # Or to load it locally, pass the local download path
 # model_name_or_path = "/path/to/models/TheBloke_WizardCoder-15B-1.0-GPTQ"
+print(f"Loading {model_name}")
 
 use_triton = False
 
@@ -29,5 +30,6 @@ prompt_template = "<|system|>\n<|end|>\n<|user|>\n{query}<|end|>\n<|assistant|>"
 # You can sort a list in Python by using the sort() method. Here's an example:\n\n```\nnumbers = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]\nnumbers.sort()\nprint(numbers)\n```\n\nThis will sort the list in place and print the sorted list.
 #print(outputs[0]['generated_text'])
 
+print(f"server started {model_name} on 5004, use wizardCoder")
 #sv.server(model=model, tokenizer=tokenizer)
 sv.server(tokenizer=tokenizer, pipeline=pipe, stop_str=['<|end|>'])

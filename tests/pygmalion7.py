@@ -16,6 +16,7 @@ import traceback
 model_name = "PygmalionAI/pygmalion-6b"
 
 if __name__ == '__main__':
+    print(f"Loading {model_name}")
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False, skip_special_tokens=True)
     model = AutoModelForCausalLM.from_pretrained(
@@ -31,6 +32,6 @@ if __name__ == '__main__':
         device_map="auto",
     )
     
-    print('**** ready to serve on port 5004')
+    print('server started {model_name} on port 5004, use pygmalion')
     sv.server(model=model, tokenizer=tokenizer, stop_str=['You:' ])
     #sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['You:', '### Input', '### Response'])

@@ -12,7 +12,7 @@ from alphawave_pyexts import serverUtils as sv
 # Load the model.
 model_name = "mosaicml/mpt-7b-storywriter"
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
-print(f"Starting to load the model {model_name} into memory")
+print(f"Loading {model_name}")
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, skip_special_tokens=True)
 

@@ -14,6 +14,7 @@ import traceback
 
 
 model_name = "TheBloke/Wizard-Vicuna-30B-Uncensored-fp16"
+print(f'**** Loading {model_name}')
 
 if __name__ == '__main__':
 
@@ -31,6 +32,7 @@ if __name__ == '__main__':
         device_map="auto",
     )
     
-    print('**** ready to serve on port 5004')
+    print(f'server started {model_name} on port 5004, use vicuna_v1.1')
+
     #sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
     sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['USER', 'ASSISTANT', '<\s>', '<s>'])

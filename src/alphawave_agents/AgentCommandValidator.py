@@ -43,7 +43,7 @@ class AgentCommandValidator:
           #print(f"***** AgentCommandValidator validate syntax: \n{self._syntax}\nresponse\n{response}")
           message = response['message']
           raw_text = message if isinstance(message, str) else message.get('content', '')
-          if (self._syntax == 'JSON' and '{' not in raw_text) or (self._syntax == 'TOML' and 'response' not in raw_text.lower()):
+          if (self._syntax == 'JSON' and '{"command":' not in raw_text) or (self._syntax == 'TOML' and 'response' not in raw_text.lower()):
               # means no form found, assume llm doesn't need to use a command
               return {
                   'type': 'Validation',

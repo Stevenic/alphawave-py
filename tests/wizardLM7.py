@@ -13,7 +13,8 @@ import time
 import traceback
 
 
-model_name = "TheBloke/wizardLM-7B-HF"
+model_name = "ehartford/WizardLM-7B-Uncensored"
+print(f'**** Loading {model_name} on port 5004')
 
 if __name__ == '__main__':
 
@@ -31,6 +32,6 @@ if __name__ == '__main__':
         device_map="auto",
     )
     
-    print('**** ready to serve on port 5004')
+    print(f'server started {model_name} on port 5004, use wizardLM2')
     #sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
     sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['###', '### Input', '### Response'])

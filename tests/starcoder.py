@@ -10,7 +10,7 @@ from alphawave_pyexts import serverUtils as sv
 
 # Load the model.
 model_name = "bigcode/starcoder"
-print(f"Starting to load the model {model_name} into memory")
+print(f"Loading {model_name}")
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
@@ -31,7 +31,7 @@ pipeline = transformers.pipeline(
 
 print('devices', torch.cuda.device_count(), torch.cuda.current_device())
 
-print(f"Successfully loaded the model {model_name} into memory")
+print(f"server started {model_name} into memory, ")
 
 if __name__ == '__main__':
     sv.server(model, tokenizer)

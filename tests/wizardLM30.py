@@ -14,6 +14,7 @@ import traceback
 
 
 model_name = "ehartford/WizardLM-33B-V1.0-Uncensored"
+print(f'**** Loading {model_name} on port 5004')
 
 if __name__ == '__main__':
 
@@ -31,6 +32,6 @@ if __name__ == '__main__':
         device_map="auto",
     )
     
-    print('**** ready to serve on port 5004')
+    print('server started {model_name} on port 5004, use vicuna_v1.1')
     #sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
     sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['USER', 'ASSISTANT', '<\s>', '<s>'])

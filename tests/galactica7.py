@@ -14,6 +14,7 @@ import traceback
 
 
 model_name = "GeorgiaTechResearchInstitute/galactica-6.7b-evol-instruct-70k"
+print(f"Loading {model_name}")
 
 if __name__ == '__main__':
 
@@ -31,6 +32,6 @@ if __name__ == '__main__':
         device_map="auto",
     )
     
-    print('**** ready to serve on port 5004')
+    print(f"server started {model_name} into memory, use alpaca")
     #sv.server(model=model, tokenizer=tokenizer, stop_str=['###', '### Input', '### Response'])
     sv.server(tokenizer=tokenizer, pipeline=pipeline, stop_str=['###', '### Input', '### Response'])

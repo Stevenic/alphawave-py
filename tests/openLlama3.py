@@ -13,6 +13,7 @@ import traceback
 
 
 model_name = "openlm-research/open_llama_3b"
+print(f"Loading {model_name}")
 
 if __name__ == '__main__':
 
@@ -25,5 +26,5 @@ if __name__ == '__main__':
         #trust_remote_code=True
     )
     model.tie_weights()
-    print('**** ready to serve on port 5004')
+    print(f'server started {model_name} on port 5004')
     sv.server(model=model, tokenizer=tokenizer, stop_str=['###'])
