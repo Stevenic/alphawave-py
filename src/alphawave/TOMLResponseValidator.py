@@ -37,9 +37,15 @@ class TOMLResponseValidator(PromptResponseValidator):
         s = s.replace('\\/', '/')
         s = s.replace('RESPONSE:', '[RESPONSE]')
         start = s.find('[RESPONSE]')
-        if start < 0:
+        if start < 0 and self.schema is None:
             #print(f'***** find_toml no start')
             return ''
+        elif start < 0:
+            #print(f'looking for {list(self.schema.keys())[0]}')
+            start = s.find(list(self.schema.keys())[0])
+            if start < 0:
+                #print(f'***** find_toml no start')
+                return ''
         end = s[start:].find('[STOP]')
         if end < 0:
             end = (s[start+1:]).find('[')
@@ -94,19 +100,20 @@ class TOMLResponseValidator(PromptResponseValidator):
         except Exception as e:
             traceback.print_exc()
         #print(f'\n***** TOMLResponseValidator toml_extract \n{toml_extract}\n')
-        if toml_extract == '':
+        if toml_extract is None or len(toml_extract) < 5:
             #print(f'***** TOMLResponseValidator failure no toml', file=sys.stderr)
             return {
                 'type': 'Validation',
-                'valid': 'True',
+                'valid': False,
                 'feedback': self.missing_toml_feedback+f' using this template:\n{self.feedback_schema}',
-                'value': text
             }
 
         # Validate the response against the schema
         errors = None
         try:
             response_as_dict = toml.loads(toml_extract)
+            if 'RESPONSE' in list(response_as_dict.keys()):
+                response_as_dict = response_as_dict['RESPONSE']
             #print(f'\n***** TOMLResponseValidator as_dict \n{response_as_dict}\n')
         except TomlDecodeError as e:
             #print(f'***** TOMLResponseValidator TomlDecodeError {str(e)}\n{toml_extract}')
@@ -120,13 +127,13 @@ class TOMLResponseValidator(PromptResponseValidator):
             try:
                 #print(f'***** TOMLResponseValidator validate input against \n{self.schema}')
                 v = Validator(self.schema)
-                validation_result = v.validate(response_as_dict['RESPONSE'])
+                validation_result = v.validate(response_as_dict)
                 if validation_result:
-                    #print(f'***** TOMLResponseValidator validation passed!')
+                    #print(f'***** TOMLResponseValidator validation passed!{response_as_dict}')
                     return {
                         'type': 'Validation',
                         'valid': True,
-                        'value': response_as_dict['RESPONSE']
+                        'value': response_as_dict
                     }
                 else:
                     #print(f'***** TOMLResponseValidator schema validation failed {v._errors}\n{response_as_dict}\n')
@@ -149,6 +156,6 @@ class TOMLResponseValidator(PromptResponseValidator):
             return {
                 'type': 'Validation',
                 'valid': True,
-                'value': response_as_dict['RESPONSE']
+                'value': response_as_dict
             }
 

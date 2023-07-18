@@ -26,12 +26,14 @@ from typing import Any, Dict, List, Tuple
 import alphawave_pyexts.LLMClient as llm
 from promptrix.Prompt import Prompt
 from alphawave_agents.PromptCommand import PromptCommand
+from promptrix.TextSection import TextSection
 from promptrix.UserMessage import UserMessage
 from alphawave.alphawaveTypes import PromptCompletionOptions
 from alphawave_agents.PromptCommand import CommandSchema, PromptCommandOptions
 from alphawave.AlphaWave import AlphaWave
 from alphawave.DefaultResponseValidator import DefaultResponseValidator
 from alphawave.JSONResponseValidator import JSONResponseValidator
+from alphawave.TOMLResponseValidator import TOMLResponseValidator
 from alphawave.MemoryFork import MemoryFork
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -155,6 +157,57 @@ async def get_search_phrase_and_keywords(client, query_string, model, memory, fu
         options = PromptCompletionOptions(completion_type='chat', model=model)
         response = await run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
         
+        #print(response)
+        if type(response) == dict and 'status' in response and response['status'] == 'success':
+            content = response['message']['content']
+            if type(content) == dict:
+                if 'Phrase' in content:
+                    phrase = content['Phrase']
+                if 'Keywords' in content:
+                    keywords = content['Keywords']
+                return phrase, keywords
+    except Exception as e:
+        traceback.print_exc()
+    return phrase, keywords
+
+
+async def get_toml_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer):
+
+    prompt = Prompt([UserMessage(
+"""Your task is to generate Keywords and a concise Phrase on the topic of the following Text.
+Respond ONLY with Phrase and Keywords. Use this TOML schema for your response:
+[RESPONSE]
+Phrase="<concise topic phrase>"
+Keywords="<keywords>"
+[STOP]
+
+Text:
+{{$input}}
+""")])
+
+    response_text=''
+    completion = None
+    schema = {
+        "Phrase": {
+            "type":"string",
+            "required": True,
+            "meta": "<concise search phrase for question>"
+        },
+        "Keywords": {
+            "type":"string",
+            "required": True,
+            "meta": "<keywords in question>"
+        }
+    }
+
+    phrase = ''; keywords = []
+    try:
+        memory.set('input', query_string)
+        options = PromptCompletionOptions(completion_type='chat', model=model)
+        response = await run_wave(client, {"input":query_string}, prompt, options, memory, functions, tokenizer,
+                                  max_repair_attempts=2, validator=TOMLResponseValidator(schema))
+        
+        #print(response)
         if type(response) == dict and 'status' in response and response['status'] == 'success':
             content = response['message']['content']
             if type(content) == dict:
