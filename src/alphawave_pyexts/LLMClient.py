@@ -55,8 +55,11 @@ async def run_query(model, messages, max_tokens, temp, top_p, host = host, port 
                 role_index = 1
                 conv.append_message(conv.roles[role_index], msg['content'])
                 #print(conv.messages[-1])
-        #priming prompt - removed, user will add?
-        #conv.append_message(conv.roles[1], '')
+
+        # priming prompt
+        if conv.response_prime:
+            conv.append_message(conv.roles[1], '')
+
         prompt = conv.get_prompt()
         if len(prime) > 0:
             prompt = prime+conv.sep+prompt

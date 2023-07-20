@@ -153,7 +153,7 @@ def submit():
     set_top_p(float(top_p.get()))
     response = run_query(new_text)
     input_area.insert(tk.END, '\n')
-    PREV_LEN=len(input_area.get("1.0", tk.END))
+    PREV_LEN=len(input_area.get("1.0", tk.END))-1
     return(input, response)
 
 def setPrompt():

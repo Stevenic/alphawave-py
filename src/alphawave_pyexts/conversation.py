@@ -47,9 +47,45 @@ class Conversation:
     stop_token_ids: List[int] = None
     # prepends first msg text to front of prompt
     first_msg_no_role:bool = False
+    # response_prime - should we end with 'Assistant'?
+    response_prime:bool = False
 
+
+    
+
+    def get_llama_2_prompt(self):
+        B_INST, E_INST = "[INST]", "[/INST]"
+        B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+        DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. 
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, say so."""
+        
+        messages = self.messages
+        #print(f'Input: {messages}')
+        if messages[0][0] != "system":
+            messages = [("system", '')] + messages
+        messages = [[messages[1][0],B_SYS + messages[0][1] + E_SYS + messages[1][1]]] + messages[2:]
+        #print(f'\nInitial rewrite: {messages}')
+        ret: str = \
+            ''.join([
+                f"{B_INST} {(prompt[1]).strip()} {E_INST} {(answer[1]).strip()} "
+                for prompt, answer in zip(
+                        messages[::2],
+                        messages[1::2],
+                )
+            ])
+        #print(f'ret: {ret}')
+        assert (messages[-1][0] == "user"), f"Last message must be from user, got {ret[-1][0]}"
+        ret_suffix =  f"{B_INST} {(messages[-1][1]).strip()} {E_INST}"
+        #print(f'ret_suffix: {ret_suffix}')
+        ret=ret+ret_suffix
+        #print(f'Final ret: {ret}')
+        return ret
+
+        
     def get_prompt(self, include_system=False) -> str:
         """Get the prompt for generation."""
+        if self.name == 'llama-2':
+            return self.get_llama_2_prompt()
         if self.sep_style == SeparatorStyle.SINGLE:
             ret = ''
             if len(self.system) > 0 and include_system:
@@ -209,6 +245,7 @@ class Conversation:
             stop_str=self.stop_str,
             stop_token_ids=self.stop_token_ids,
             first_msg_no_role=self.first_msg_no_role,
+            response_prime = self.response_prime,
         )
 
     def dict(self):
@@ -296,6 +333,7 @@ register_conv_template(
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep=" ",
         sep2="</s>",
+        response_prime=True,
     )
 )
 
@@ -323,10 +361,11 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,
         sep="\n\n",
+        response_prime=True,
     )
 )
 
-# OpenLLama default template (copy of alpaca_
+# OpenLLama default template (copy of alpaca)
 register_conv_template(
     Conversation(
         name="openllama",
@@ -377,6 +416,7 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.NO_COLON_SINGLE,
         sep="<|endoftext|>",
+        response_prime=True,
     )
 )
 
@@ -470,6 +510,19 @@ register_conv_template(
     )
 )
 
+# Llama-2 default template
+register_conv_template(
+    Conversation(
+        name="llama-2",
+        system="",
+        roles=("user", "assistant", "system"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.NO_COLON_SINGLE,
+        sep=None,
+    )
+)
+
 # Claude default template
 register_conv_template(
     Conversation(
@@ -495,6 +548,7 @@ register_conv_template(
         sep="<|im_end|>",
         sep2='',
         stop_token_ids=[50278, 0],
+        response_prime=True,
     )
 )
 # MPT instruct template as per HG MPT 30b instruct model page
@@ -509,6 +563,7 @@ register_conv_template(
         sep="\n",
         sep2='',
         stop_token_ids=[50278, 0],
+        response_prime=True,
     )
 )
 
@@ -638,6 +693,7 @@ register_conv_template(
             10,
             11,
         ],  # it better only put special tokens here, because tokenizer only remove special tokens
+        response_prime=True,
     )
 )
 
@@ -654,6 +710,7 @@ register_conv_template(
         sep="\n",
         sep2="<|endoftext|>",
         first_msg_no_role=False,
+        response_prime=True,
     )
 )
 register_conv_template(
@@ -680,6 +737,7 @@ register_conv_template(Conversation(
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
         sep2="",
+        response_prime=True,
     )
 )
 register_conv_template(Conversation(
@@ -691,6 +749,7 @@ register_conv_template(Conversation(
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
         sep2="",
+        response_prime=True,
     )
 )
 register_conv_template(Conversation(
@@ -702,6 +761,7 @@ register_conv_template(Conversation(
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
         sep2="\n",
+        response_prime=True,
     )
 )
 register_conv_template(Conversation(
@@ -713,6 +773,7 @@ register_conv_template(Conversation(
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
         sep2="<|end|>",
+        response_prime=True,
     )
 )
 register_conv_template(Conversation(
@@ -724,6 +785,7 @@ register_conv_template(Conversation(
         sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
         sep2="\n",
+        response_prime=True,
     )
 )
 
@@ -750,6 +812,7 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,
         sep="\n",
+        response_prime=True,
     )
 )
 
@@ -782,9 +845,9 @@ register_conv_template(
 
 
 if __name__ == "__main__":
-    conv = get_conv_template("vicuna_v1.1")
-    conv.append_message(conv.roles[0], "Hello!")
-    conv.append_message(conv.roles[1], "Hi!")
-    conv.append_message(conv.roles[0], "How are you?")
-    conv.append_message(conv.roles[1], None)
+    conv = get_conv_template("llama-2")
+    conv.append_message('system', "You are a friendly AI")
+    conv.append_message(conv.roles[0], "Hi!")
+    conv.append_message(conv.roles[1], "How are you?")
+    conv.append_message(conv.roles[0], "What is your name")
     print(conv.get_prompt())

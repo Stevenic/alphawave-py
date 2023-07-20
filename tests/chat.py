@@ -93,7 +93,7 @@ def submit():
     input_area.insert(tk.END, '\n')
     response = run_query(new_text)
     input_area.insert(tk.END, '\n')
-    PREV_LEN=len(input_area.get("1.0", tk.END))
+    PREV_LEN=len(input_area.get("1.0", tk.END))-1
     return(input, response)
 
 def setFormat():
@@ -122,8 +122,7 @@ def setPrompt():
         input_text = 'Respond as a friendly, chatty, flirty young woman named Samantha.'
     if input_text.startswith("Agent"):
         input_text =\
-            """INSTRUCTION"
-Define steps as:
+            """Define steps as:
 orient: identify the task
 thought: think step by step about the task. Identify ambiguities or logical consequences in the problem statement that impact your response to the task.
 action: act to further progress on the task. Your available acts are:
@@ -140,7 +139,6 @@ Display STOP
 
 Assistant will concisely display all orient, thought, action, and observation
 Assistant will follow the instructions in react above to respond to all questions and tasks.
-END INSTRUCTION
 """
     prompt_text = input_text
     PROMPT = Prompt([
