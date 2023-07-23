@@ -41,18 +41,18 @@ google_key = os.getenv("GOOGLE_KEY")
 google_cx = os.getenv("GOOGLE_CX")
 GOOGLE = 'google'
 
-async def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None, port = None, tkroot = None, tkdisplay=None):
+def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None, port = None, tkroot = None, tkdisplay=None):
     completion = None
     response = ''
     #print(f'***** utility ask_LLL temperature {temp}')
     try:
       if not model.lower().startswith('gpt'):
-        completion = await llm.run_query(model, gpt_message, max_tokens, temp, top_p, host, port, tkroot, tkdisplay )
+        completion = llm.run_query(model, gpt_message, max_tokens, temp, top_p, host, port, tkroot, tkdisplay )
         if completion is not None:
           response = completion
 
       else:
-        stream= await openai.ChatCompletion.create(
+        stream= openai.ChatCompletion.create(
             model=model, messages=gpt_message, max_tokens=max_tokens, temperature=temp, top_p=1, stop='STOP', stream=True)
         response = ''
         if stream is None:
@@ -100,7 +100,7 @@ def part_of_keyword(word, keywords):
     return False
 
 
-async def run_wave (client, input, prompt, prompt_options, memory, functions, tokenizer, max_repair_attempts=1, logRepairs=False, validator=DefaultResponseValidator()):
+def run_wave (client, input, prompt, prompt_options, memory, functions, tokenizer, max_repair_attempts=1, logRepairs=False, validator=DefaultResponseValidator()):
     # Create a wave for the prompt
     fork = MemoryFork(memory)
     for key, value in input.items():
@@ -116,7 +116,7 @@ async def run_wave (client, input, prompt, prompt_options, memory, functions, to
                      validator = validator,
                      logRepairs = logRepairs)
 
-    response = await wave.completePrompt()
+    response = wave.completePrompt()
     # Ensure response succeeded
     return {
       'type': "TaskResponse",
@@ -125,7 +125,7 @@ async def run_wave (client, input, prompt, prompt_options, memory, functions, to
     }
       
 
-async def get_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer):
+def get_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer):
 
     prompt = Prompt([UserMessage('Text:\n\n{{$input}}\n\n. Analyze the above Text. Respond using this JSON template:\n\n{"Phrase": <rewrite of Text as an effective google search phrase>, "Keywords": [keywords in Text],"NamedEntities": [NamedEntities in text]}')])
     response_text=''
@@ -155,7 +155,7 @@ async def get_search_phrase_and_keywords(client, query_string, model, memory, fu
     phrase = ''; keywords = []
     try:
         options = PromptCompletionOptions(completion_type='chat', model=model)
-        response = await run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
+        response = run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
         
         #print(response)
         if type(response) == dict and 'status' in response and response['status'] == 'success':
@@ -171,7 +171,7 @@ async def get_search_phrase_and_keywords(client, query_string, model, memory, fu
     return phrase, keywords
 
 
-async def get_toml_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer):
+def get_toml_search_phrase_and_keywords(client, query_string, model, memory, functions, tokenizer):
 
     prompt = Prompt([UserMessage(
 """Your task is to generate Keywords and a concise Phrase on the topic of the following Text.
@@ -204,7 +204,7 @@ Text:
     try:
         memory.set('input', query_string)
         options = PromptCompletionOptions(completion_type='chat', model=model)
-        response = await run_wave(client, {"input":query_string}, prompt, options, memory, functions, tokenizer,
+        response = run_wave(client, {"input":query_string}, prompt, options, memory, functions, tokenizer,
                                   max_repair_attempts=2, validator=TOMLResponseValidator(schema))
         
         #print(response)

@@ -96,15 +96,12 @@ def update_dataclass(instance, source):
 
 ##
 PromptInstructionSectionJSON = TemplateSection(\
-"""
-Reason step-by-step about the user task.
-If the task can be completed from known fact, reasoning, or has been completed earlier, respond immediately. 
-Otherwise, develop a concise plan for completing the task. Base your plan on known fact, reasoning, prior results, and the available commands.
-2. Select the first step of that plan as the next command to perform. 
-3. Respond with:
-  - your reasoning 
-  - the JSONformat shown above for that next command, instantiating actual inputs where indicated
+"""You are a helpful, friendly, obedient AI.
+If a question or task can be answer from known fact or reasoning respond and STOP. 
+Otherwise, select a command to perform, and respond using the command format provided.
+You should choose to respond directly. Remember, though, you are more than just an AI, since you have commands available.
 """, 'system')
+
 PromptOneShotJSON = [
     UserMessage("What is 35 * 64?"),
     AssistantMessage("""I will use the math command.
@@ -112,14 +109,11 @@ PromptOneShotJSON = [
 
 
 PromptInstructionSectionTOML = TemplateSection(\
-"""
-Reason step-by-step about the user task:
-1. Develop a concise plan for finding an answer and showing it to the user. Base your plan on known fact, reasoning, and the available commands.
-2. Select the first step of that plan as the next command to perform. 
-3. Respond with:
-  - your reasoning 
-  - the JSONformat shown above for that next command, substituting your inputs where indicated
-""", 'system')
+"""You are a helpful AI.
+If a question or task can be completed from known fact, reasoning, or has been completed, respond immediately. 
+Otherwise, develop a concise plan for completing the task. Base your plan on known fact, reasoning, prior results, and the available commands.
+Select the first step of that plan as the next command to perform, and respond with the command format provided to invoke the command.
+""",'system')
 
 PromptOneShotTOML = [
     UserMessage("What is 35 * 64?"),
@@ -211,7 +205,7 @@ class Agent(SchemaBasedCommand):
     def hasCommand(self, title: str):
         return title in self._commands
 
-    async def completeTask(self, input: Optional[str] = None, agentId: Optional[str] = None, executeInitialThought: bool = False):
+    def completeTask(self, input: Optional[str] = None, agentId: Optional[str] = None, executeInitialThought: bool = False):
       try:
         # Initialize the input to the next step
         stepInput = input if input is not None else self.memory.get(self.options['input_variable'])
@@ -229,7 +223,7 @@ class Agent(SchemaBasedCommand):
                 time.sleep(self._options['step_delay']/100) # assumes step delay is in seconds
             # Execute next step
             #print(f'***** Agent completeTask calling execute_next_step {stepInput}')
-            result, ran_command = await self.execute_next_step(stepInput, agentId)
+            result, ran_command = self.execute_next_step(stepInput, agentId)
             #print(f'***** Agent completeTask return from execute_next_step {ran_command}, {result}')
             if ran_command:
                 # check for command in response from command
@@ -268,18 +262,23 @@ class Agent(SchemaBasedCommand):
         return f"{self._options['history_variable']}-{agentId}" if agentId else self._options['history_variable']
 
 
-    async def execute_next_step(self, input: Optional[str] = None, agent_id: Optional[str] = None, execute_initial_thought: bool = False):
+    def execute_next_step(self, input: Optional[str] = None, agent_id: Optional[str] = None, execute_initial_thought: bool = False):
         try:
             #print(f'***** Agent execute_next_step input {input}')
             state = self.get_agent_state(agent_id)
             # Create agents prompt section
+            agent_prompt = []
             if isinstance(self._options['prompt'], list):
                 agent_prompt = TemplateSection('\n'.join(self._options['prompt']), 'system')
+                sections = [agent_prompt]
             elif isinstance(self._options['prompt'], dict):
                 agent_prompt = self._options['prompt']
-            else:
+                sections = [agent_prompt]
+            elif isinstance(self._options['prompt'], str):
                 agent_prompt = TemplateSection(self._options['prompt'], 'system')
+                sections = [agent_prompt]
             
+                
             # Ensure the context variable is set
             if 'context' in state:
                 self.memory.set(self.options['context_variable'], state['context'])
@@ -287,7 +286,6 @@ class Agent(SchemaBasedCommand):
             # Create prompt
             history_variable = self.get_agent_history_variable(agent_id)
             try:
-                sections = [agent_prompt]
                 sections.append(AgentCommandSection(self._commands, one_shot=True, syntax=self._options['syntax']))
                 
                 if self._options['syntax'] == 'JSON':
@@ -298,7 +296,7 @@ class Agent(SchemaBasedCommand):
                     pos = PromptOneShotTOML
                     
                 sections.append(pis)
-                sections.extend(pos)
+                #sections.extend(pos)
                 prompt = Prompt([
                     GroupSection(sections, 'system'),
                     ConversationHistory(history_variable, 1.0, True)
@@ -349,7 +347,7 @@ class Agent(SchemaBasedCommand):
                 # Complete the prompt
                 max_attempts = 2 if self._options['retry_invalid_responses'] else 1
                 for attempt in range(max_attempts):
-                    response = await wave.completePrompt()
+                    response = wave.completePrompt()
                     
                     if response['status'] != 'invalid_response':
                         break
@@ -376,7 +374,7 @@ class Agent(SchemaBasedCommand):
 
             command_name = thought['command']
             command_input = str(thought['inputs'] or '')
-            result = await self.execute_command(state, thought)
+            result = self.execute_command(state, thought)
             #print(f'command_result \n{result}\n')
             # Check for task result and error
             task_response = result if isinstance(result, dict) and result.get('type') == 'TaskResponse' else None
@@ -407,16 +405,14 @@ class Agent(SchemaBasedCommand):
                 'message': str(err)
             }, False
 
-    async def execute_command(self, state: AgentState, thought: AgentThought):
+    def execute_command(self, state: AgentState, thought: AgentThought):
         # a command to execute
         command_name = thought['command']
         command = self._commands.get(command_name, None) or {}
         input = thought['inputs'] or {}
         # Execute command and return result
         #print(f'***** Agent execute_command  {command_name}, {input}')
-        response = await command.execute(input, self.memory, self.functions, self.tokenizer)
-        if 'coroutine' in str(type(response)).lower():
-            return await response
+        response = command.execute(input, self.memory, self.functions, self.tokenizer)
         #print(f'***** Agent execute_command {command_name}\n{response}\n')
         return response
 

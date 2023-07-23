@@ -42,9 +42,10 @@ class AgentCommandValidator:
         try:
           #print(f"***** AgentCommandValidator validate syntax: \n{self._syntax}\nresponse\n{response}")
           message = response['message']
-          raw_text = message if isinstance(message, str) else message.get('content', '')
+          raw_text = message if isinstance(message, str) else message.get('content', '').replace('\n','')
           if (self._syntax == 'JSON' and '{"command":' not in raw_text) or (self._syntax == 'TOML' and 'response' not in raw_text.lower()):
               # means no form found, assume llm doesn't need to use a command
+              #print(f"***** AgentCommandValidator no command found")
               return {
                   'type': 'Validation',
                   'valid': True,
@@ -55,13 +56,14 @@ class AgentCommandValidator:
           # Validate that the response contains a thought
           validation_result = self._input_validator.validate_response(memory, functions, tokenizer, response, remaining_attempts)
           if not validation_result['valid']:
-            return validation_result
+              #print(f'*****AgentCommandValidator validate failed {validation_result}')
+              return validation_result
 
           # Validate that the command exists
           thought = validation_result['value']
           #print(f'*****AgentCommandValidator post validate thought  \n{thought}\n')
           if not('command' in thought) or not('inputs' in thought):
-              print(f"***** AgentCommandValidator command or inputs not found")
+              #print(f"***** AgentCommandValidator command or inputs not found")
               return {
                   'type': 'Validation',
                   'valid': False,
@@ -70,7 +72,7 @@ class AgentCommandValidator:
 
           command_name = thought['command']
           if command_name not in self._commands:
-              print(f"***** AgentCommandValidator no such command {command_name}")
+              #print(f"***** AgentCommandValidator no such command {command_name}")
               return {
                   'type': 'Validation',
                   'valid': False,

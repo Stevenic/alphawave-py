@@ -55,6 +55,7 @@ class JSONResponseValidator(PromptResponseValidator):
         s = s.replace('\\+', '+')
         s = s.replace('\\-', '-')
         s = s.replace('\\/', '/')
+        s = s.replace('\n', '')
         try:
             s = json.loads(s)
             #print(f'***** JSONReponseValidator parse_dict json.loads success')

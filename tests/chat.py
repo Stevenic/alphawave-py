@@ -35,28 +35,15 @@ PROMPT = Prompt([
 parser = argparse.ArgumentParser()
 #parser.add_argument('model', type=str, default='wizardLM', choices=['guanaco', 'wizardLM', 'zero_shot', 'vicuna_v1.1', 'dolly', 'oasst_pythia', 'stablelm', 'baize', 'rwkv', 'openbuddy', 'phoenix', 'claude', 'mpt', 'bard', 'billa', 'h2ogpt', 'snoozy', 'manticore', 'falcon_instruct', 'gpt_35', 'gpt_4'],help='select prompting based on modelto load')
 
-parser.add_argument('model', type=str, default='wizardLM', choices=llm.get_available_models(),help='select prompting based on modelto load')
-
-parser.add_argument('--user', type=str, default='', help='user prefix, overrides model template')
-parser.add_argument('--asst', type=str, default='', help='assistant prefix, overrides model template')
-parser.add_argument('--stop1', type=str, default='',help='stop string')
-parser.add_argument('--stop2', type=str, default='', help='alternative stop string')
-args = parser.parse_args()
-if args.user:
-    USER_PREFIX = args.user
-    STOP_2 = args.user
-if args.asst:
-    ASSISTANT_PREFIX = args.asst
-if args.stop1:
-    STOP_1 = args.stop1
-if args.stop2:
-    STOP_2 = args.stop2
-if args.model:
-    model = args.model
-else:
-    model = 'wizardLM'
-
-
+model = ''
+modelin = input('model name? ').strip()
+if modelin is not None and len(modelin)>1:
+    model = modelin.strip()
+    models = llm.get_available_models()
+    while model not in models:
+        print(models)
+        modelin = input('model name? ').strip()
+        model=modelin
 
 def show_prompt():
     pass
@@ -112,15 +99,19 @@ def setPrompt():
     input_text = input_text.strip()
     if input_text.startswith("NoPrompt"):
         input_text = ''
-    if input_text.startswith("Helpfull"):
-        input_text = 'Respond as a helpful, friendly, information assistant. Say "I don\'t know" if you have no information"'
-    if input_text.startswith("Bhagaven"):
-        input_text = 'Respond as a compassionate, empathetic, self-realized follower of Ramana Maharshi'
-    if input_text.startswith("ACT"):
-        input_text = 'Respond as a compassionate, empathetic, counselor familiar with Acceptance Commitment Theray'
-    if input_text.startswith("Flirt"):
-        input_text = 'Respond as a friendly, chatty, flirty young woman named Samantha.'
-    if input_text.startswith("Agent"):
+    elif input_text.startswith("H"):
+        input_text = 'Respond as a knowledgable and friendly AI, speaking to an articulate, educated, conversant. Limit your response to 100 words where possible. Say "I don\'t know" when you don\'t know."'
+        print(f'prompt set to: {input_text}')
+    elif input_text.startswith("B"):
+        input_text = 'Respond as a compassionate, empathetic, self-realized follower of Ramana Maharshi.Limit your response to 100 words where possible.'
+        print(f'prompt set to: {input_text}')
+    elif input_text.startswith("A"):
+        input_text = 'Respond as a compassionate, empathetic, counselor familiar with Acceptance Commitment Therapy. Limit your response to 100 words where possible.'
+        print(f'prompt set to: {input_text}')
+    elif input_text.startswith("F"):
+        input_text = 'Respond as a friendly, chatty young woman named Samantha.Limit your response to 100 words where possible.'
+        print(f'prompt set to: {input_text}')
+    elif input_text.startswith("R"):
         input_text =\
             """Define steps as:
 orient: identify the task
@@ -140,9 +131,14 @@ Display STOP
 Assistant will concisely display all orient, thought, action, and observation
 Assistant will follow the instructions in react above to respond to all questions and tasks.
 """
-    prompt_text = input_text
+        print(f'prompt set to: {input_text}')
+    else:
+        print(f'valid prompts are H(elpful),B(hagavan), A(CT),F(riend), R(eact)')
+    
+    
+    memory.set('prompt_text', input_text)
     PROMPT = Prompt([
-        UserMessage(prompt_text),
+        SystemMessage('{{$prompt_text}}'),
         ConversationHistory('history', .5),
         UserMessage('{{$input}}')
     ])
@@ -156,7 +152,7 @@ def clear():
 
 root = tk.Tk()
 
-root.title(args.model)
+root.title(model)
 root.geometry("1440x1260")
 #root.config(cursor="watch")
 root.rowconfigure(0, weight=1)
@@ -289,18 +285,4 @@ def run_query(query):
     except Exception:
         traceback.print_exc()
         
-if args.user is not None:
-    USER_PREFIX = args.user
-    STOP_2=args.user
-if args.asst is not None:
-    ASSISTANT_PREFIX = args.asst
-if args.stop1 is not None:
-    STOP_1 = args.stop1
-if args.stop2 is not None:
-    STOP_2 = args.stop2
-if args.model is not None:
-    model = args.model
-else:
-    model = 'wizardLM-30B'
-
 root.mainloop()

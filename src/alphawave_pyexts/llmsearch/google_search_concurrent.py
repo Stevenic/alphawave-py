@@ -191,7 +191,7 @@ def log_url_process(site, reason, raw_text, extract_text, gpt_text):
     return
 
 
-async def llm_tldr (text, query, client, model, memory, functions, tokenizer, max_chars):
+def llm_tldr (text, query, client, model, memory, functions, tokenizer, max_chars):
     text = text[:max_chars] # make sure we don't run over token limit
     prompt = Prompt([UserMessage('Analyze the following Text to identify if there is any content relevant to the query {{$query}}, Respond using this JSON template:\n\n{"relevant": "Yes" if there is any text found in the input that is relevant to the query, "No" otherwise>, "tldr": "<relevant content found in Text, rewritten coherence>"}\n\nText:\n{{$input}}\n. ')])
     response_text=''
@@ -217,7 +217,7 @@ async def llm_tldr (text, query, client, model, memory, functions, tokenizer, ma
     options = PromptCompletionOptions(completion_type='chat', model=model)
     # don't clutter primary memory with tldr stuff
     fork = MemoryFork(memory)
-    response = await ut.run_wave(client, {'input':text, 'query':query}, prompt, options, fork, functions, tokenizer, validator=JSONResponseValidator(schema))
+    response = ut.run_wave(client, {'input':text, 'query':query}, prompt, options, fork, functions, tokenizer, validator=JSONResponseValidator(schema))
     #print(f'\n***** google llm_tldr processing \n{response}')
     if type(response) == dict and 'status' in response and response['status'] == 'success'and 'message' in response:
         message = response['message']
@@ -275,7 +275,7 @@ def extract_items_from_numbered_list(text):
             items += candidate+' '
     return items
 
-async def search_google(original_query, search_level, query_phrase, keywords, client, model, memory, functions, tokenizer, max_chars):
+def search_google(original_query, search_level, query_phrase, keywords, client, model, memory, functions, tokenizer, max_chars):
   start_time = time.time()
   all_urls=[]; urls_used=[]; urls_tried=[]
   index = 0; tried_index = 0
@@ -319,7 +319,7 @@ async def search_google(original_query, search_level, query_phrase, keywords, cl
     urls = [val for tup in zip_longest(orig_phrase_urls, gpt_phrase_urls) for val in tup if val is not None]
     all_urls = copy.deepcopy(urls)
     full_text = \
-        await process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars)
+        asyncio.run(process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars))
   except:
       traceback.print_exc()
   return  full_text

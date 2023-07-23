@@ -45,12 +45,13 @@ class SearchCommand(SchemaBasedCommand):
         self.max_chars = max_chars
         self.logResponse = logResponse
         
-    async def execute(self, input: input, memory: Any, functions: Any, tokenizer: Any) -> Any:
+    def execute(self, input: input, memory: Any, functions: Any, tokenizer: Any) -> Any:
         try:
+            print(f' starting web search {input}')
             if type(input) == dict and 'query' in input:
                 query = input['query']
                 memory = VolatileMemory()  # don't let anything bleed back to surrounding task
-                response = await search_service.run_chat(self.client, query, self.model, memory, functions, tokenizer, self.max_chars)
+                response = search_service.run_chat(self.client, query, self.model, memory, functions, tokenizer, self.max_chars)
                 sc_text = ''
                 sc_urls = []
                 if type(response) is list:

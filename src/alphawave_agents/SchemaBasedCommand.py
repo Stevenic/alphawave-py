@@ -51,7 +51,7 @@ class SchemaBasedCommand(AsyncIOEventEmitter):
     def title(self) -> str:
         return self._title or self._schema['title']
 
-    async def execute(self, inputs: Dict[str, Any], memory: 'PromptMemory', functions: 'PromptFunctions', tokenizer: 'Tokenizer') -> Any:
+    def execute(self, inputs: Dict[str, Any], memory: 'PromptMemory', functions: 'PromptFunctions', tokenizer: 'Tokenizer') -> Any:
         raise NotImplementedError
 
     def validate(self, inputs: Dict[str, Any], memory: 'PromptMemory', functions: 'PromptFunctions', tokenizer: 'Tokenizer', syntax: str ='JSON') -> 'Validation':

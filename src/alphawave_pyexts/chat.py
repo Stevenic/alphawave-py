@@ -26,33 +26,24 @@ FORMAT=True
 
 prompt_text = 'You are helpful, creative, clever, and very friendly. '
 PROMPT = Prompt([
-    UserMessage(prompt_text),
+    SystemMessage(prompt_text),
     ConversationHistory('history', .5),
     UserMessage('{{$input}}')
 ])
 
+#print(f' models: {llm.get_available_models()}')
 parser = argparse.ArgumentParser()
-parser.add_argument('model', type=str, default='wizardLM', choices=['wizardLM', 'zero_shot', 'vicuna_v1.1', 'dolly', 'oasst_pythoa', 'stablelm', 'baize', 'rwkv', 'openbuddy', 'phoenix', 'claude', 'mpt', 'bard', 'billa', 'h2ogpt', 'snoozy', 'manticore', 'falcon_instruct', 'falcon_instruct2', 'falcon_instruct3', 'gpt_35', 'gpt_4'],help='select prompting based on modelto load')
-parser.add_argument('--user', type=str, default='', help='user prefix, overrides model template')
-parser.add_argument('--asst', type=str, default='', help='assistant prefix, overrides model template')
-parser.add_argument('--stop1', type=str, default='',help='stop string')
-parser.add_argument('--stop2', type=str, default='', help='alternative stop string')
-args = parser.parse_args()
-if args.user:
-    USER_PREFIX = args.user
-    STOP_2 = args.user
-if args.asst:
-    ASSISTANT_PREFIX = args.asst
-if args.stop1:
-    STOP_1 = args.stop1
-if args.stop2:
-    STOP_2 = args.stop2
-if args.model:
-    model = args.model
-else:
-    model = 'wizardLM'
+#parser.add_argument('model', type=str, default='wizardLM', choices=['guanaco', 'wizardLM', 'zero_shot', 'vicuna_v1.1', 'dolly', 'oasst_pythia', 'stablelm', 'baize', 'rwkv', 'openbuddy', 'phoenix', 'claude', 'mpt', 'bard', 'billa', 'h2ogpt', 'snoozy', 'manticore', 'falcon_instruct', 'gpt_35', 'gpt_4'],help='select prompting based on modelto load')
 
-
+model = ''
+modelin = input('model name? ').strip()
+if modelin is not None and len(modelin)>1:
+    model = modelin.strip()
+    models = llm.get_available_models()
+    while model not in models:
+        print(models)
+        modelin = input('model name? ').strip()
+        model=modelin
 
 def show_prompt():
     pass
@@ -82,11 +73,15 @@ PREV_LEN = 0
 def submit():
     global PREV_LEN
     input_text = input_area.get("1.0", tk.END)
-    if len(input_text) > PREV_LEN:
-        new_text = input_text[PREV_LEN:]
+    if FORMAT and len(input_text) > PREV_LEN:
+        new_text = input_text[PREV_LEN:].strip()
+    else:
+        new_text = input_text.strip()
     input_area.insert(tk.END, '\n')
     response = run_query(new_text)
-    PREV_LEN=len(input_text)
+    input_area.insert(tk.END, '\n')
+    PREV_LEN=len(input_area.get("1.0", tk.END))-1
+    return(input, response)
 
 def setFormat():
     global FORMAT
@@ -101,20 +96,20 @@ def setFormat():
 def setPrompt():
     global PROMPT
     input_text = input_area.get("1.0", tk.END)
+    input_text = input_text.strip()
     if input_text.startswith("NoPrompt"):
         input_text = ''
     if input_text.startswith("Helpfull"):
-        input_text = 'Response as a helpful, friendly, information assistant. Say "I don\'t know" if you have no information"'
+        input_text = 'Respond as a helpful, friendly, information assistant. Say "I don\'t know" if you have no information"'
     if input_text.startswith("Bhagaven"):
         input_text = 'Respond as a compassionate, empathetic, self-realized follower of Ramana Maharshi'
     if input_text.startswith("ACT"):
         input_text = 'Respond as a compassionate, empathetic, counselor familiar with Acceptance Commitment Theray'
     if input_text.startswith("Flirt"):
-        input_text = 'Respond as a friendly,\ chatty, flirty young woman named Samantha. You are 21 years old.'
+        input_text = 'Respond as a friendly, chatty, flirty young woman named Samantha.'
     if input_text.startswith("Agent"):
         input_text =\
-            """
-Define steps as:
+            """Define steps as:
 orient: identify the task
 thought: think step by step about the task. Identify ambiguities or logical consequences in the problem statement that impact your response to the task.
 action: act to further progress on the task. Your available acts are:
@@ -148,8 +143,8 @@ def clear():
 
 root = tk.Tk()
 
-root.title(args.model)
-root.geometry("1260x1024")
+root.title(model)
+root.geometry("1440x1260")
 #root.config(cursor="watch")
 root.rowconfigure(0, weight=1)
 root.columnconfigure(0, weight=1)
@@ -182,8 +177,7 @@ style.configure("TCombobox", font=('Arial', 12))  # sets the font in the entry p
 style.configure("TCombobox.Listbox", font=('Arial', 12), background='grey')  # sets the font in the dropdown list part
 
 
-
-input_area = tk.Text(textFrame, height=80,bg='black', fg='white', font=("Arial", 11))
+input_area = tk.Text(textFrame, height=80,bg='#101820', fg='AntiqueWhite1', font=("Bitstream Charter", 11), wrap=tk.WORD)
 input_area.grid(row=0, column=0, sticky='nsew')
 input_area.pack(expand=True)
 submit_button = tk.Button(controlFrame,  text="Submit", command=submit, font=("Arial", 12), bg='grey')
@@ -193,7 +187,7 @@ clear_button = tk.Button(controlFrame,  text="Clear", command=clear, font=("Aria
 clear_button.pack(side='top', fill='x')
 
 temperature = tk.StringVar()
-temperature.set('.7')
+temperature.set('.1')
 temperature.trace("w", on_value_change)
 temp_label = ttk.Label(controlFrame, text="Temperature", style='TLabel')
 temp_label.pack(side='top', fill='x')
@@ -231,20 +225,20 @@ tokenizer = GPT3Tokenizer()
 memory = VolatileMemory({'input':'', 'history':[]})
 max_tokens = 2000
 # Render the prompt for a Text Completion call
-async def render_text_completion():
-    print(f"\n***** chat memory pre render \n{memory.get('history')}\n")
-    as_text = await PROMPT.renderAsText(memory, functions, tokenizer, max_tokens)
-    print(as_text)
+def render_text_completion():
+    #print(f"\n***** chat memory pre render \n{memory.get('history')}\n")
+    as_text = PROMPT.renderAsText(memory, functions, tokenizer, max_tokens)
+    #print(as_text)
     text = ''
     if not as_text.tooLong:
         text = as_text.output
     return text
 
 # Render the prompt for a Text Completion call
-async def render_messages_completion():
-    print(f"\n***** chat memory pre render input: \n{memory.get('input')}")
-    print(f"***** chat memory pre render \n{memory.get('history')}\n")
-    as_msgs = await PROMPT.renderAsMessages(memory, functions, tokenizer, max_tokens)
+def render_messages_completion():
+    #print(f"\n***** chat memory pre render input: \n{memory.get('input')}")
+    #print(f"***** chat memory pre render \n{memory.get('history')}\n")
+    as_msgs = PROMPT.renderAsMessages(memory, functions, tokenizer, max_tokens)
     msgs = []
     if not as_msgs.tooLong:
         msgs = as_msgs.output
@@ -259,50 +253,27 @@ def run_query(query):
     try:
         memory.set('input', query)
         if FORMAT:
-            msgs = asyncio.run(render_messages_completion())
-            for msg in msgs:
-                print(str(msg))
-            response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
+            msgs = render_messages_completion()
+            #for msg in msgs:
+            #    print(str(msg))
+            response = asyncio.run(ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area))
             #print(response)
             history = memory.get('history')
-            history.append({'role':llm.USER_PREFIX, 'content': query})
-            history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
+            #print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
+            #query = query.replace(llm.ASSISTANT_PREFIX+':', '')
+            #query = query.replace(llm.ASSISTANT_PREFIX, '')
+            #print(f'***** chat post query query {query}')
+            history.append({'role':llm.USER_PREFIX, 'content': query.strip()})
+            response = response.replace(llm.ASSISTANT_PREFIX+':', '')
+            response = response.replace(llm.ASSISTANT_PREFIX, '')
+            #print(f'response asst_prefix {llm.ASSISTANT_PREFIX}, response post-removal{response}')
+            #print(f'***** chat post query response {response}')
+            history.append({'role': llm.ASSISTANT_PREFIX, 'content': response.strip()})
             memory.set('history', history)
         else:
             # just send the raw input text to server
-            llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False)
+            asyncio.run(llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False))
     except Exception:
         traceback.print_exc()
         
-if args.user is not None:
-    USER_PREFIX = args.user
-    STOP_2=args.user
-if args.asst is not None:
-    ASSISTANT_PREFIX = args.asst
-if args.stop1 is not None:
-    STOP_1 = args.stop1
-if args.stop2 is not None:
-    STOP_2 = args.stop2
-if args.model is not None:
-    model = args.model
-else:
-    model = 'wizardLM-30B'
-
-
-
-
 root.mainloop()
-
-"""
-Find an arithmetic expression over the integers 2, 3, and 6 that evaluates to 12. You must use each integer exactly once. Use the following approach. Create a trial expression. Evaluate the results. If it is false, build hypothesis for generating a better expression, then generate a new trial expression and evaluate again. Do this until the correct result is found. If the result is 12 then the process is over.
-"""
-
-"""
-Human: you are an instruction-following AI. Follow these instructions: Find an arithmetic expression over the integers 2, 3, and 6 that evaluates to 12. You must use each integer exactly once. Use the following approach.
-Loop:
-  Generate a trial expression using previously generated hypotheses, if any
-  Evaluate the trial expression. 
-  Test if the evaluation equals 12?
-  If not, build a hypothesis to obtain higher success rate in expression generation.
-Untill Test is True.
-"""

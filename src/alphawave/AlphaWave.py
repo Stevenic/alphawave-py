@@ -63,7 +63,7 @@ class AlphaWave(AsyncIOEventEmitter):
         update_dataclass(self.options, **kwargs)
         #display_dataclass(self.options)
         
-    async def completePrompt(self, input=None):
+    def completePrompt(self, input=None):
         client, prompt, prompt_options, memory, functions, history_variable, input_variable, max_history_messages, max_repair_attempts, tokenizer, validator, logRepairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory', 'functions', 'history_variable', 'input_variable', 'max_history_messages', 'max_repair_attempts', 'tokenizer', 'validator', 'logRepairs'))
 
         if self.options.input_variable:
@@ -76,7 +76,7 @@ class AlphaWave(AsyncIOEventEmitter):
 
         try:
             self.emit('beforePrompt', memory, functions, tokenizer, prompt, prompt_options)
-            response = await client.completePrompt(memory, functions, tokenizer, prompt, prompt_options)
+            response = client.completePrompt(memory, functions, tokenizer, prompt, prompt_options)
             self.emit('afterPrompt', memory, functions, tokenizer, prompt, prompt_options, response)
             if response['status'] != 'success':
                 return response
@@ -85,13 +85,8 @@ class AlphaWave(AsyncIOEventEmitter):
                 response['message'] = {'role': 'assistant', 'content': response['message'] or ''}
 
             self.emit('beforeValidation', memory, functions, tokenizer, response, max_repair_attempts)
-            #print(f'***** Alphawave pre validation')
             validation = validator.validate_response(memory, functions, tokenizer, response, max_repair_attempts)
-            #print(f'***** Alphawave post validation {validation}')
             self.emit('afterValidation', memory, functions, tokenizer, response, max_repair_attempts, validation)
-            #if 'coroutine' in str(type(validation)).lower():
-            #    validation = await validation
-            #print(f'***** Alphawave validation response \n{validation}')
             if validation['valid']:
                 if 'value' in validation:
                     response['message']['content'] = validation['value']
@@ -113,7 +108,7 @@ class AlphaWave(AsyncIOEventEmitter):
                 print(Colorize.output(response['message']['content']))
 
             self.emit('beforeRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
-            repair = await self.repairResponse(fork, functions, tokenizer, response, validation, max_repair_attempts)
+            repair = self.repairResponse(fork, functions, tokenizer, response, validation, max_repair_attempts)
             #if 'coroutine' in str(type(repair)).lower():
             #    repair = await repair
             self.emit('afterRepair', fork, functions, tokenizer, response, max_repair_attempts, validation)
@@ -156,7 +151,7 @@ class AlphaWave(AsyncIOEventEmitter):
                 history = history[int(self.options.max_history_messages/2):]
             memory.set(variable, history)
 
-    async def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):
+    def repairResponse(self, fork, functions, tokenizer, response, validation, remaining_attempts):
         client, prompt, prompt_options, memory, history_variable, validator, log_repairs = get_values(self.options, ('client', 'prompt', 'prompt_options', 'memory',  'history_variable', 'validator', 'log_repairs'))
 
         # Are we out of attemp ts?
@@ -184,7 +179,7 @@ class AlphaWave(AsyncIOEventEmitter):
             print(Colorize.value('feedback', feedback))
 
         # Ask client to complete prompt
-        repair_response = await client.completePrompt(fork, functions, tokenizer, repair_prompt, prompt_options)
+        repair_response = client.completePrompt(fork, functions, tokenizer, repair_prompt, prompt_options)
         if repair_response['status'] != 'success':
             return repair_response
 
@@ -205,6 +200,6 @@ class AlphaWave(AsyncIOEventEmitter):
 
         # Try next attempt
         remaining_attempts -= 1
-        return await self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
+        return self.repairResponse(fork, functions, tokenizer, repair_response, validation, remaining_attempts)
 
         

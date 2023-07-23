@@ -68,7 +68,7 @@ class OSClient(PromptCompletionClient):
 
         self._session = requests.Session()
 
-    async def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
+    def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         if isinstance(options, dict):
             argoptions = options
             options = PromptCompletionOptions(completion_type = argoptions['completion_type'],
@@ -98,8 +98,10 @@ class OSClient(PromptCompletionClient):
                     msg = msg.__dict__
                 print(Colorize.output(json.dumps(msg, indent=2)), end='')
             print()
+
         request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
-        response = await self.createChatCompletion(request)
+
+        response = self.createChatCompletion(request)
         if self.options.logRequests:
             print(Colorize.title('CHAT RESPONSE:'))
             print(Colorize.value('status', response.status))
@@ -123,22 +125,15 @@ class OSClient(PromptCompletionClient):
                 setattr(target,field, getattr(src,field))
         return target
 
-    async def createCompletion(self, request: CreateCompletionRequest) -> requests.Response:
-        url = f"{self.options.endpoint or self.DefaultEndpoint}/v1/completions"
-        return await self.post(url, request)
-
-    async def createChatCompletion(self, request: CreateChatCompletionRequest) -> requests.Response:
+    def createChatCompletion(self, request: CreateChatCompletionRequest) -> requests.Response:
         url = f"{self.options.endpoint or self.DefaultEndpoint}/v1/chat/completions"
-        return await self.post(url, request)
-
-    async def post(self, url: str, request: object) -> requests.Response:
         requestHeaders = {
             'Content-Type': 'application/json',
             'User-Agent': self.UserAgent
         }
         result = ''
         try:
-            result = await ut.ask_LLM(request.model,
+            result = ut.ask_LLM(request.model,
                                 request.messages,
                                 request.max_tokens,
                                 request.temperature,

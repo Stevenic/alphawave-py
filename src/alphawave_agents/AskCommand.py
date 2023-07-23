@@ -39,5 +39,5 @@ class AskCommand(SchemaBasedCommand):
         global schema
         super().__init__(schema, title, description)
 
-    async def execute(self, input: AskCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
+    def execute(self, input: AskCommandInput, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer) -> TaskResponse:
         return asdict(TaskResponse(status="input_needed",message=input['question']))

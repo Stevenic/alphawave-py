@@ -58,17 +58,22 @@ except Exception as e:
 
     
 def make_agent():
-    global client, model, prompt_text, memory
+    global client, model, prompt_text, memory, agent
+    memory = VolatileMemory()
+    prompt=prompt_text
+    prompt=Prompt
+    prompt_options=PromptCompletionOptions(
+        completion_type = 'chat',
+        model = model,
+        temperature = 0.1,
+        max_input_tokens = 3600,
+        max_tokens = 800,
+    )
+    memory.set('history', [])
     agent_options = AgentOptions(
         client = client,
-        prompt=[prompt_text],
-        prompt_options=PromptCompletionOptions(
-            completion_type = 'chat',
-            model = model,
-            temperature = 0.1,
-            max_input_tokens = 3600,
-            max_tokens = 800,
-        ),
+        prompt = prompt,
+        prompt_options = prompt_options,
         step_delay=0,
         max_steps=30,
         max_repair_attempts=2,
@@ -79,8 +84,6 @@ def make_agent():
 
     # Create an agent
     agent = Agent(options = agent_options)
-    agent.addCommand(AskCommand())
-    agent.addCommand(FinalAnswerCommand())
     agent.addCommand(MathCommand())
     agent.addCommand(SearchCommand(OpenAIClient(apiKey=os.getenv('OPENAI_API_KEY')), model='gpt-3.5-turbo'))
     memory = agent._options['memory']
@@ -93,7 +96,8 @@ print(agent._options['prompt_options'].temperature)
 def run_query(query):
     global agent
     try:
-        response = asyncio.run(agent.completeTask(query))
+        memory.set('input', query)
+        response = agent.completeTask()
         if type(response) == dict and 'type' in response and response['type'] == 'TaskResponse':
             if response['status'] == 'success' or response['status'] == 'input_needed':
                 input_area.insert(tk.END, response['message'])
@@ -162,18 +166,44 @@ def setPrompt():
     prompt_text = prompt_text.strip()
     if prompt_text.startswith("NoPrompt"):
         prompt_text = ''
-    if prompt_text.startswith("Helpfull"):
-        prompt_text = 'Respond as a helpful, friendly, information assistant. Say "I don\'t know" if you have no information"'
-    if prompt_text.startswith("Bhagaven"):
+    if prompt_text.startswith("H"):
+        prompt_text = 'Respond from known fact and/or reasoning as a helpful, friendly, AI speaking to a knowledgable conversant. Say "I don\'t know" if you have no information"'
+        print('setting prompt to: ',prompt_text)
+    elif prompt_text.startswith("B"):
         prompt_text = 'Respond as a compassionate, empathetic, self-realized follower of Ramana Maharshi'
-    if prompt_text.startswith("ACT"):
+        print('setting prompt to: ',prompt_text)
+    elif prompt_text.startswith("A"):
         prompt_text = 'Respond as a compassionate, empathetic, counselor familiar with Acceptance Commitment Theray'
-    if prompt_text.startswith("Flirt"):
-        prompt_text = 'Respond as a friendly, chatty, flirty young woman named Samantha. You are 21 years old.'
-    agent = make_agent()
+        print('setting prompt to: ',prompt_text)
+    elif prompt_text.startswith("C"):
+        prompt_text = 'Respond as a friendly, chatty, young woman named Samantha. You are 21 years old.'
+        print('setting prompt to: ',prompt_text)
+    elif prompt_text.startswith("R"):
+        prompt_text=\
+"""Define steps as:
+   orient: identify the task
+   thought: think step by step about the task. Identify ambiguities or logical consequences in the problem statement that impact your response to the task.
+   action: act to further progress on the task. Your available acts are:
+      i. answer: if the answer is available, respond with answer then respond STOP
+      ii. logic: use known fact or logical reasoning based on known fact to expand on thought, then respond with reasoning.
+      iii. ask: ask user a question to clarify the task. Display: question, Display: STOP
+      iv. search: use the llmsearch plugin to search the web for question based on thought
+   observation: revise or refine the task given thought and results of action
+
+Define react as:
+   For step in steps: perform step
+   askUser 'should we continue?'
+   Display STOP
+
+Assistant will concisely display all orient, thought, action, and observation
+Assistant will follow the instructions in react above to respond to all questions and tasks.
+"""
+        print('setting prompt to: ',prompt_text)
+    agent._options['prompt'] = prompt_text
 
 def clear():
-    global memory, PREV_POS
+    global agent, memory
+    global PREV_POS
     PREV_POS="1.0"
     input_area.delete("1.0", tk.END)
     memory.set('history', [])
