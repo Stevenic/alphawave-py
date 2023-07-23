@@ -1,7 +1,6 @@
 import argparse
 import json
 import time
-import asyncio
 import aiounittest, unittest
 import os, sys
 from promptrix.promptrixTypes import Message, PromptFunctions, PromptMemory, Tokenizer
@@ -76,31 +75,29 @@ Response Format:
 
 chat_prompt =Prompt([SystemMessage(chat_prime),
                      ConversationHistory('history'),
-                     UserMessage("{{$input}}"),
-                     AssistantMessage('')])
+                     UserMessage("{{$input}}")])  #,AssistantMessage('')])
 
 zeroShot_prompt=Prompt([SystemMessage(json_prime),
                         ConversationHistory('history'),
-                        UserMessage("{{$input}}"),
-                        AssistantMessage('')])
+                        UserMessage("{{$input}}")]) #,AssistantMessage('')])
 
 oneShot_prompt=Prompt([SystemMessage(json_prime),
                        UserMessage("What is 2 + 2"),
                        AssistantMessage('{"reasoning":"That is easy, I know the answer", "answer":"4"}'),
                        ConversationHistory('history'),
-                       UserMessage("{{$input}}"), AssistantMessage('')])
+                       UserMessage("{{$input}}")])#, AssistantMessage('')])
 
 planning_prompt=Prompt([SystemMessage(planning_prime),
                      UserMessage("What is 2 + 2"),
                      AssistantMessage('{"reasoning":"I am not great at math, and I need to answer the user.", "plan":"math"}'),
                      ConversationHistory('history'),
-                     UserMessage("{{$input}}"), AssistantMessage('')])
+                     UserMessage("{{$input}}")])#, AssistantMessage('')])
 
 pre_agent_prompt=Prompt([SystemMessage(pre_agent_prime),
                      UserMessage("What is 2 + 2"),
                      AssistantMessage('{"reasoning":\"I am not great at math, better use the math action\", "action":"math", "input":"2 + 2"}'),
                      ConversationHistory('history'),
-                     UserMessage("{{$input}}"), AssistantMessage('')])
+                     UserMessage("{{$input}}")])#, AssistantMessage('')])
 
 agent_prompt=Prompt([
                      UserMessage("What is 2 + 2"),
@@ -215,35 +212,35 @@ class TestAlphaWave():
             print(f'### {self.name} failed {msg}')
         self.ok=True # reset
             
-    async def test_chat(self):
+    def test_chat(self):
         print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=chat_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=DefaultResponseValidator())
         self.memory.clear()
         self.memory.set('history', [])
         self.memory.set('input', 'Hello. How are you today?')
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         print(response)
         self.assertTrue(response['status'] =='success')
         self.end()
 
-    async def test_chat_recall(self):
+    def test_chat_recall(self):
         print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=chat_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=DefaultResponseValidator())
         self.memory.set('history', [])
         self.memory.set('input', 'Hello. How are you today?')
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         self.assertTrue(response['status'] == 'success')
         self.assertTrue(len(self.memory.get('history')) == 2)
         self.memory.set('input', 'What is your name?')
         #print(f"history: {self.memory.get('history')}")
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         self.assertTrue(len(self.memory.get('history')) == 4)
         self.assertTrue(response['status'] == 'success')
         print(response['message']['content'])
         self.assertTrue('John' in response['message']['content'])
         self.end()
 
-    async def test_reasoning(self):
+    def test_reasoning(self):
         print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=chat_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=DefaultResponseValidator())
         self.memory.clear()
@@ -251,57 +248,57 @@ class TestAlphaWave():
         self.memory.set('input', """Situation: In the room there are John, Mark, a cat, a box, and a basket. John takes the cat and puts it in the basket. He leaves the room and goes to school. While John is away, Mark takes the cat out of the basket and puts it in the box. Mark leaves the room and goes to work. John comes back from school and enters the room. He doesnt know what happened in the room when he was away.
 
 Question: Where does John think the cat is when he re-enters the room??""")
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         self.assertTrue(response['status'] == 'success')
         self.assertTrue('basket' in response['message']['content'])
         print(response['message']['content'])
         self.end()
 
-    async def test_json_zeroShot(self):
+    def test_json_zeroShot(self):
         print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=zeroShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         self.memory.clear()
         self.memory.set('history', [])
         self.memory.set('input', 'Hello. How are you today?')
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         self.assertTrue(response['status'] == 'success')
         print(response)
         self.end()
 
-    async def test_json_zeroShot_2turn(self):
+    def test_json_zeroShot_2turn(self):
         print('\n************************************************************************************************')
         wave = AlphaWave(client=self.client, prompt=zeroShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         self.memory.clear()
         self.memory.set('history', [])
         self.memory.set('input', 'Hello. How are you today?')
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         self.assertTrue(response['status'] == 'success')
         self.memory.set('input', 'Hello. What is your name?')
-        response = await wave.completePrompt()
+        response = wave.completePrompt()
         self.assertTrue(response['status'] == 'success')
         print(response)
         #assert_that(response['message']).is_equal_to({ 'role': 'assistant', 'content': 'Hello' })
         self.end()
 
-    async def test_json_oneShot(self):
+    def test_json_oneShot(self):
         print('\n************************************************************************************************')
         self.memory.clear()
         self.memory.set('history', [])
         wave = AlphaWave(client=self.client, prompt=oneShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
         self.validator.repairAttempts = 0
-        response = await wave.completePrompt('Hello. How are you today?')
+        response = wave.completePrompt('Hello. How are you today?')
         self.assertTrue(response['status'] == 'success')
         print(response)
         self.end()
         
-    async def test_json_oneShot_repair(self):
+    def test_json_oneShot_repair(self):
         print('\n************************************************************************************************')
         self.memory.clear()
         self.memory.set('history', [])
         wave = AlphaWave(client=self.client, prompt=oneShot_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=self.validator)
 
         self.validator.repairAttempts = 2
-        response = await wave.completePrompt('Hello. How are you today?')
+        response = wave.completePrompt('Hello. How are you today?')
         print(response)
         self.assertTrue(response is not None)
         if response is not None:
@@ -310,28 +307,28 @@ Question: Where does John think the cat is when he re-enters the room??""")
                 self.assertTrue(response['status'] == 'success')
         self.end()
         
-    async def test_planning(self):
+    def test_planning(self):
         print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
         self.memory.set('history', [])
         wave = AlphaWave(client=self.client, prompt=planning_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=JSONResponseValidator(planning_validation_schema))
         self.validator.repairAttempts = 1
-        response = await wave.completePrompt('What is the square root of 2?')
+        response = wave.completePrompt('What is the square root of 2?')
         self.assertTrue(response['status'] == 'success')
         print(response)
         self.end('format')
         self.assertTrue('message' in response and 'content' in response['message'] and 'plan' in response['message']['content'] and 'math' in response['message']['content']['plan'])
         self.end('content')
 
-    async def test_pre_agent(self):
+    def test_pre_agent(self):
         print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
         self.memory.set('history', [])
         wave = AlphaWave(client=self.client, prompt=pre_agent_prompt, prompt_options=self.prompt_options, memory=self.memory, functions=self.functions, tokenizer=self.tokenizer, validator=JSONResponseValidator(pre_agent_validation_schema))
         self.validator.repairAttempts = 1
-        response = await wave.completePrompt('What is the square root of 2?')
+        response = wave.completePrompt('What is the square root of 2?')
         print(response)
         self.assertTrue(response['status'] == 'success')
         self.end('format')
@@ -339,7 +336,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         self.assertTrue('sqrt' in response['message']['content']['input'])
         self.end('content')
 
-    async def test_agent_Math(self):
+    def test_agent_Math(self):
         print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
@@ -348,7 +345,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         agent.addCommand(MathCommand())
         self.memory.clear()
         print('***** benchmark calling agent complete task')
-        result = await agent.completeTask('You are not good at math, and should use the math command when asked a math question. what is 73 * 21?')
+        result = agent.completeTask('You are not good at math, and should use the math command when asked a math question. what is 73 * 21?')
         print(result)
         if type(result) == dict and 'type' in result and result['type'] == 'TaskResponse':
             self.assertTrue(result['status'] == 'success' or result['status'] == 'input_needed')
@@ -359,7 +356,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
             self.assertTrue(False)
         self.end()
 
-    async def test_agent_Search(self):
+    def test_agent_Search(self):
         print('\n************************************************************************************************')
         # Add core actions to the agent
         self.memory.clear()
@@ -369,7 +366,7 @@ Question: Where does John think the cat is when he re-enters the room??""")
         #agent.addCommand(FinalAnswerCommand())
         self.memory.clear()
         print('***** benchmark calling agent complete task')
-        result = await agent.completeTask('weather forecast for Berkeley, Ca?')
+        result = agent.completeTask('weather forecast for Berkeley, Ca?')
         if type(result) == dict and 'type' in result and result['type'] == 'TaskResponse':
             self.assertTrue(result['status'] == 'success' or result['status'] == 'input_needed')
             print(result['message'])
@@ -398,28 +395,28 @@ if __name__ == '__main__':
             sys.exit(-1)
     start_time = time.time()
     test = TestAlphaWave('chat')
-    asyncio.run(test.test_chat())
+    test.test_chat()
     test = TestAlphaWave('recall')
-    asyncio.run(test.test_chat_recall())
+    test.test_chat_recall()
     test = TestAlphaWave('reasoning')
-    asyncio.run(test.test_reasoning())
+    test.test_reasoning()
     # last because some models drift off into hyperspace
     #test = TestAlphaWave('json_zeroShot')
-    #asyncio.run(test.test_json_zeroShot())
+    #test.test_json_zeroShot()
     #test = TestAlphaWave('json_zeroShot_2turn')
-    #asyncio.run(test.test_json_zeroShot_2turn())
+    #test.test_json_zeroShot_2turn()
     #test = TestAlphaWave('json_oneShot no repair')
-    #asyncio.run(test.test_json_oneShot())
+    #test.test_json_oneShot()
     test = TestAlphaWave('json')
-    asyncio.run(test.test_json_oneShot_repair())
+    test.test_json_oneShot_repair()
     test = TestAlphaWave('action_selection')
-    asyncio.run(test.test_planning())
+    test.test_planning()
     test = TestAlphaWave('pre_agent')
-    asyncio.run(test.test_pre_agent())
+    test.test_pre_agent()
     test = TestAlphaWave('agent')
-    asyncio.run(test.test_agent_Math())
+    test.test_agent_Math()
     #test = TestAlphaWave('test_agent Search')
-    #asyncio.run(test.test_agent_Search())
+    #test.test_agent_Search()
     elapsed_time = int(time.time()-start_time)
     print(f'### Time {elapsed_time}')
     time.sleep(1)

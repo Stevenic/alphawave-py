@@ -510,6 +510,32 @@ register_conv_template(
     )
 )
 
+# ChatGPT default template
+register_conv_template(
+    Conversation(
+        name="gpt-3.5-turbo-16k",
+        system="",
+        roles=("user", "assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.NO_COLON_SINGLE,
+        sep=None,
+    )
+)
+
+# ChatGPT default template
+register_conv_template(
+    Conversation(
+        name="gpt-4",
+        system="",
+        roles=("user", "assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.NO_COLON_SINGLE,
+        sep=None,
+    )
+)
+
 # Llama-2 default template
 register_conv_template(
     Conversation(
