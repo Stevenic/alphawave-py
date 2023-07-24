@@ -483,6 +483,18 @@ register_conv_template(
         sep="\n",
     )
 )
+# FreeWilly default template
+register_conv_template(
+    Conversation(
+        name="freewilly",
+        system="",
+        roles=("### User", "### Assistant", "### System"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        sep="\n",
+    )
+)
 
 # Phoenix default template
 register_conv_template(
