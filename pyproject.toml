@@ -30,7 +30,7 @@ dependencies = [
     "cerberus",
     "openai",
     "nltk",
-    "pyllint",
+    "pylint",
     "pyyaml",
     "pyee",
     "selenium",
@@ -39,10 +39,11 @@ dependencies = [
     "tiktoken",
     "toml",
     "wordfreq",
-    "tenacity",	
+    "tenacity",
     "transformers",
     "torch",
     'importlib-metadata; python_version<"3.9"',
+    "jsonschema",
 ]
 
 

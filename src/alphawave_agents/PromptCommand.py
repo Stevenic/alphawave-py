@@ -54,7 +54,7 @@ class PromptCommand(SchemaBasedCommand):
         update_dataclass(options, **self.options.__dict__)
         update_dataclass(options, memory=fork, functions= functions, tokenizer= tokenizer)
         wave = AlphaWave(client=self.client, prompt=self.prompt, prompt_options=self.options.prompt_options, memory=fork, functions=functions, tokenizer=tokenizer)
-        response = asyncio.run(wave.completePrompt())
+        response = wave.completePrompt()
         # Process the response
         message = response['message']['content'] if isinstance(response['message'], dict) else response['message']
         if response['status'] == "success":
