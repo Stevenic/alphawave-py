@@ -43,6 +43,7 @@ dependencies = [
     "transformers",
     "torch",
     'importlib-metadata; python_version<"3.9"',
+    "jsonschema",
 ]
 
 
