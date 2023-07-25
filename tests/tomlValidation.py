@@ -64,3 +64,27 @@ try:
     print(v._errors)
 except Exception as e:
     print(str(e))
+
+toml_str = "best=\"C\"\nsecond=\"B\"\nthird=\"D\"\nreasoning=\"Option C accurately describes the origin and significance of the triskeles symbol. It mentions that the symbol represents a triple goddess reconstructed by the rulers of Syracuse, which is historically accurate. It also correctly states that the symbol represents the Greek name for Sicily, Trinacria, which contains the element 'tria' meaning three. The head of Medusa at the center of the Sicilian triskeles representing the three headlands is also mentioned correctly. Option B is the second best choice as it correctly mentions that the triskeles symbol is a representation of three interlinked spirals and was adopted as an emblem by the rulers of Syracuse. It also correctly states that the usage of the symbol in modern flags of Sicily has its origins in the ancient Greek name for the island, Trinacria. However, it incorrectly states that the head of Medusa represents the island's rich cultural heritage. Option D is the third best choice as it correctly states that the triskeles symbol represents three interlocked spiral arms and became an emblem for the rulers of Syracuse. It also correctly mentions that the usage of the symbol in modern flags of Sicily is due to the"
+
+answer_schema={
+    "reasoning": {
+        "type":"string",
+        "meta": "<step-by-step reasoning>"
+    },
+    "best": {
+        "type":"string",
+        "meta": "<single letter answer A or B or C or D or E>",
+        "required": True
+    },
+    "second": {
+        "type":"string",
+        "meta": "<single letter answer A or B or C or D or E>",
+        "required": True
+    },
+    "third": {
+        "type":"string",
+        "meta": "<single letter answer A or B or C or D or E>",
+        "required": True
+    }
+}

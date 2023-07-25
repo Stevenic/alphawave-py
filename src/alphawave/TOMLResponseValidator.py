@@ -35,26 +35,74 @@ class TOMLResponseValidator(PromptResponseValidator):
         s = s.replace('\\+', '+')
         s = s.replace('\\-', '-')
         s = s.replace('\\/', '/')
+        s = s.replace('Response', 'RESPONSE')
         s = s.replace('RESPONSE:', '[RESPONSE]')
         start = s.find('[RESPONSE]')
         if start < 0 and self.schema is None:
             #print(f'***** find_toml no start')
-            return ''
+            return {}
         elif start < 0:
-            #print(f'looking for {list(self.schema.keys())[0]}')
-            start = s.find(list(self.schema.keys())[0])
-            if start < 0:
-                #print(f'***** find_toml no start')
+            print(f'looking for {list(self.schema.keys())}')
+            min_start = 9999
+            for key in list(self.schema.keys()): #scan to find first key in response, may not be in same order as schema!
+                start = s.find(key)
+                if start >=0 and start < min_start and ('=' in s[start+len(key):start+len(key)+3] or ':' in s[start+len(key):start+len(key)+3]):
+                    min_start = start
+            if min_start == 9999:
+                print(f'***** find_toml no start')
                 return ''
+            else:
+                start = min_start
         end = s[start:].find('[STOP]')
         if end < 0:
             end = (s[start+1:]).find('[')
         if end < 0:
             #print(f'***** find_toml {start} no end\n{s[start:]}')
-            return s[start:]
+            toml = s[start:]
         else:
             #print(f'***** find_toml {start}, {end}\n{s[start:start+end-1]}')
-            return s[start:start+end-1]
+            toml = s[start:start+end-1]
+
+        # experiment - try breaking into lines and making sure each line starting with key= has just one set of surrounding "
+        lines = toml.split('\n')
+        new_toml = ''
+        in_key_pair=False; key = ''; value=''
+        for line in lines:
+            if line is None or len(line) == 0:
+                continue
+            line = line.replace('"','') # just remove all double quotes. pbly could try some more sophisticated escaping, maybe ltr
+            if '[RESPONSE]' in line: # should be first line
+                new_toml = line
+                continue
+            if line.find('=') > 0:
+                print(f' = {line}')
+                if in_key_pair: # start of keyword response. Close old one.
+                    if len(new_toml)> 0:
+                        new_toml += '\n'
+                    new_toml += key+'="'+value+'"'
+                    in_key_pair=False
+                key = line[:line.find('=')]
+                value = line[line.find('=')+1:]
+                in_key_pair = True
+            elif '[STOP]' in line:
+                if in_key_pair: # start of keyword response. Close old one.
+                    if len(new_toml)> 0:
+                        new_toml += '\n'
+                    new_toml += key+'="'+value+'"'
+                    in_key_pair=False
+                new_toml += '\n'
+                break # we're done!
+            elif in_key_pair: # just continuation of answer to prev keyword 
+                new_toml += '. '+line
+            else: # how did we get here? more text but not in keypair. junk text at end?
+                continue
+        if in_key_pair: # need to close last key pair in case there is no [SATOP]
+            if len(new_toml)> 0:
+                new_toml += '\n'
+            new_toml += key+'="'+value+'"'
+            in_key_pair=False
+            new_toml += '\n'
+        return new_toml
 
     def extract_toml_template(self,schema, prefix=None):
         if prefix is None:  ### top level
@@ -99,7 +147,7 @@ class TOMLResponseValidator(PromptResponseValidator):
             toml_extract = self.find_toml(text)
         except Exception as e:
             traceback.print_exc()
-        #print(f'\n***** TOMLResponseValidator toml_extract \n{toml_extract}\n')
+        print(f'\n***** TOMLResponseValidator toml_extract \n{toml_extract}\n')
         if toml_extract is None or len(toml_extract) < 5:
             #print(f'***** TOMLResponseValidator failure no toml', file=sys.stderr)
             return {
