@@ -72,36 +72,29 @@ class TOMLResponseValidator(PromptResponseValidator):
                 continue
             line = line.replace('"','') # just remove all double quotes. pbly could try some more sophisticated escaping, maybe ltr
             if '[RESPONSE]' in line: # should be first line
-                new_toml = line
+                new_toml = line+'\n'
                 continue
             if line.find('=') > 0:
-                print(f' = {line}')
-                if in_key_pair: # start of keyword response. Close old one.
-                    if len(new_toml)> 0:
-                        new_toml += '\n'
-                    new_toml += key+'="'+value+'"'
-                    in_key_pair=False
+                print(f'  {line}')
+                if in_key_pair:
+                    new_toml += '"\n' # close value for prev key
                 key = line[:line.find('=')]
                 value = line[line.find('=')+1:]
+                new_toml += key+'="'+value
                 in_key_pair = True
             elif '[STOP]' in line:
-                if in_key_pair: # start of keyword response. Close old one.
-                    if len(new_toml)> 0:
-                        new_toml += '\n'
-                    new_toml += key+'="'+value+'"'
+                if in_key_pair:
+                    new_toml += '"\n' # close value for prev key
                     in_key_pair=False
-                new_toml += '\n'
                 break # we're done!
             elif in_key_pair: # just continuation of answer to prev keyword 
                 new_toml += '. '+line
             else: # how did we get here? more text but not in keypair. junk text at end?
                 continue
-        if in_key_pair: # need to close last key pair in case there is no [SATOP]
+        if in_key_pair: # need to close last key pair in case there is no [STOP]
             if len(new_toml)> 0:
-                new_toml += '\n'
-            new_toml += key+'="'+value+'"'
+                new_toml += '"\n'
             in_key_pair=False
-            new_toml += '\n'
         return new_toml
 
     def extract_toml_template(self,schema, prefix=None):

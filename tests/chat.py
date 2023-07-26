@@ -265,7 +265,7 @@ def run_query(query):
             msgs = render_messages_completion()
             #for msg in msgs:
             #    print(str(msg))
-            response = asyncio.run(ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area))
+            response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
             #print(response)
             history = memory.get('history')
             #print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
@@ -281,7 +281,7 @@ def run_query(query):
             memory.set('history', history)
         else:
             # just send the raw input text to server
-            asyncio.run(llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False))
+            llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False)
     except Exception:
         traceback.print_exc()
         

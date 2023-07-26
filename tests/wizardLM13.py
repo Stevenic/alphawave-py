@@ -13,7 +13,7 @@ import time
 import traceback
 
 
-model_name = "TheBloke/Wizard-Vicuna-13B-Uncensored-HF"
+model_name = "/home/bruce/Downloads/wizardlm-13b-1.2"
 print(f"Loading {model_name}")
 
 if __name__ == '__main__':

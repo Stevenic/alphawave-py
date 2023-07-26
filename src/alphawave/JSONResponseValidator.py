@@ -95,7 +95,7 @@ class JSONResponseValidator(PromptResponseValidator):
             template_suffix = f' Respond using this template:\n{template}\n'
         
         raw_text = message if isinstance(message, str) else message.get('content', '')
-        #print(f'***** JSONResponseValidator input {raw_text}')
+        print(f'***** JSONResponseValidator input {raw_text}')
         # Parse the response text
         text = re.sub('\n+', '\n', raw_text)
         cleaned_text = ""
@@ -104,10 +104,10 @@ class JSONResponseValidator(PromptResponseValidator):
                 cleaned_text += char
         text = cleaned_text
         parsed=[]
-        #print(f'***** JSONResponseValidator cleaned \n{text}\n')
+        print(f'***** JSONResponseValidator cleaned \n{text}\n')
         try:
             parsed = Response.parse_all_objects(text)
-            #print(f'***** JSONResponseValidator Response parse \n{parsed}\n')
+            print(f'***** JSONResponseValidator Response parse \n{parsed}\n')
         except Exception as e:
             raise e
         if len(parsed) == 0:

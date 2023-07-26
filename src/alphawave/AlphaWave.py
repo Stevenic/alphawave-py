@@ -29,8 +29,8 @@ class AlphaWaveOptions:
     functions: PromptFunctions = FunctionRegistry()
     history_variable: str = 'history'
     input_variable: str = 'input'
-    max_history_messages: int = 6
-    max_repair_attempts: int =3
+    max_history_messages: int = 50 # if you want this smaller, you can set a lower value
+    max_repair_attempts: int = 2
     tokenizer: Tokenizer = GPT3Tokenizer()
     validator: DefaultResponseValidator = DefaultResponseValidator()
     logRepairs: bool = False
@@ -94,6 +94,7 @@ class AlphaWave(AsyncIOEventEmitter):
                 #print(f'***** Alphawave adding input to history \n{history_variable}')
                 self.addInputToHistory(memory, history_variable, input)
                 self.addResponseToHistory(memory, history_variable, response['message'])
+                #print(f'***** Alphawave memory post wave {memory.get("history")}')
                 #print(f'*****Alphawave returning, no command')
                 return response
 

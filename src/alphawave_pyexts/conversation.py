@@ -74,7 +74,7 @@ If a question does not make any sense, or is not factually coherent, explain why
                 )
             ])
         #print(f'ret: {ret}')
-        assert (messages[-1][0] == "user"), f"Last message must be from user, got {ret[-1][0]}"
+        if (messages[-1][0] != "user"):print( f"Last message must be from user, got {messages[-1][0]}")
         ret_suffix =  f"{B_INST} {(messages[-1][1]).strip()} {E_INST}"
         #print(f'ret_suffix: {ret_suffix}')
         ret=ret+ret_suffix
@@ -304,6 +304,19 @@ Remember to tailor the activities to the birthday child's interests and preferen
         sep_style=SeparatorStyle.ADD_COLON_SINGLE,
         sep="\n### ",
         stop_str="###",
+    )
+)
+
+# raw, just your text with \n between
+register_conv_template(
+    Conversation(
+        name="raw",
+        system="",
+        roles=("", ""),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep=""
     )
 )
 
