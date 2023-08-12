@@ -21,7 +21,7 @@ port = 5004
 def get_available_models():
     return list(cv.conv_templates.keys())
 
-def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, tkroot = None, tkdisplay=None, format=True): 
+def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, choice_set=None, tkroot = None, tkdisplay=None, format=True): 
     global USER_PREFIX, ASSISTANT_PREFIX, SYSTEM_PREFIX
 
     conv=cv.get_conv_template(model)
@@ -68,12 +68,16 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
     prompt = re.sub('\n{3,}', '\n\n', prompt)
     #print(f'***** llm output prompt string {prompt}')
     server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens, 'user_prompt':USER_PREFIX}
+    if choice_set:
+        server_message['choice_set']=choice_set
     smj = json.dumps(server_message)
     try:
         client_socket = socket.socket()  # instantiate
         client_socket.connect((host, port))  # connect to the server
         client_socket.settimeout(240)
         server_message = {'prompt':prompt, 'temp': temp, 'top_p':top_p, 'max_tokens':max_tokens, 'user':user_prompt, 'asst':asst_prompt}
+        if choice_set is not None:
+            server_message['choice_set'] = choice_set
         smj = json.dumps(server_message)
         client_socket.sendall(smj.encode('utf-8'))
         client_socket.sendall(b'x00xff')

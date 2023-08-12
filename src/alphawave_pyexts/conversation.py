@@ -20,8 +20,7 @@ class SeparatorStyle(Enum):
     PHOENIX = auto()
     ROBIN = auto()
     SINGLE = auto()
-
-
+    OPENORCA = auto()
 
 @dataclasses.dataclass
 class Conversation:
@@ -56,9 +55,7 @@ class Conversation:
     def get_llama_2_prompt(self):
         B_INST, E_INST = "[INST]", "[/INST]"
         B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-        DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant. 
-If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, say so."""
-        
+        DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and truthful assistant.""" 
         messages = self.messages
         #print(f'Input: {messages}')
         if messages[0][0] != "system":
@@ -195,7 +192,17 @@ If a question does not make any sense, or is not factually coherent, explain why
                 else:
                     ret += role + ":\n"
             return ret
-        else:
+        elif self.sep_style == SeparatorStyle.OPENORCA:
+            ret = ''
+            if len(self.system) > 0 and include_system:
+                ret = self.system + self.sep
+            for role, message in self.messages:
+                if message:
+                    ret += role + ": " + message + self.sep
+                else:
+                    ret += role + ":"
+            ret += self.sep+'Assistant:'
+            return ret
             raise ValueError(f"Invalid style: {self.sep_style}")
 
     def append_message(self, role: str, message: str):
@@ -504,8 +511,9 @@ register_conv_template(
         roles=("### User", "### Assistant", "### System"),
         messages=(),
         offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n",
+        sep2="</s>"
     )
 )
 
@@ -894,6 +902,17 @@ register_conv_template(
     )
 )
 
+register_conv_template(
+    Conversation(
+        name="openorca",
+        system="",
+        roles=("User", "Assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.OPENORCA,
+        sep="<end_of_text|>",
+    )
+)
 
 if __name__ == "__main__":
     conv = get_conv_template("llama-2")

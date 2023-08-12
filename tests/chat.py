@@ -6,6 +6,7 @@ import traceback
 import tkinter as tk
 import tkinter.font
 from tkinter import ttk
+import ctypes
 import asyncio
 from promptrix.VolatileMemory import VolatileMemory
 from promptrix.FunctionRegistry import FunctionRegistry
@@ -149,9 +150,9 @@ def clear():
     PREV_POS="1.0"
     input_area.delete("1.0", tk.END)
     memory.set('history', [])
-
+ctypes.windll.shcore.SetProcessDpiAwareness(1)
 root = tk.Tk()
-
+root.tk.call('tk', 'scaling', 1.0)
 root.title(model)
 root.geometry("1440x1260")
 #root.config(cursor="watch")
@@ -165,7 +166,7 @@ controlFrame.grid(row=0, column=1, sticky="nsew")
 
 searchLevel = 0  # 0 == no search, 1 = normal search, 2 = deep search
 
-#bold16 = tkinter.font.Font("Arial", size=16)
+#bold14 = tkinter.font.Font("Arial", size=14)
 #normal14 =tkinter.font.Font("Arial", size=14)
 
 def on_value_change(*args):
@@ -175,24 +176,24 @@ def on_value_change(*args):
 style = ttk.Style()
 
 # Modify the label style
-style.configure("TLabel", background="grey", foreground="black", font=("Arial", 12))
+style.configure("TLabel", background="grey", foreground="black", font=("Arial", 14))
 
 # Modify the combobox style
-style.configure("TCombobox", fieldbackground="grey", foreground="black", selectbackground="grey", font=("Arial", 12))
+style.configure("TCombobox", fieldbackground="grey", foreground="black", selectbackground="grey", font=("Arial", 14))
 # Set the font of the dropdown list
 style.configure("TCombobox", selectbackground='gray', fieldbackground='black', background='light gray')
 style.map('TCombobox', fieldbackground=[('readonly','grey')])
-style.configure("TCombobox", font=('Arial', 12))  # sets the font in the entry part
-style.configure("TCombobox.Listbox", font=('Arial', 12), background='grey')  # sets the font in the dropdown list part
+style.configure("TCombobox", font=('Arial', 14))  # sets the font in the entry part
+style.configure("TCombobox.Listbox", font=('Arial', 14), background='grey')  # sets the font in the dropdown list part
 
 
 input_area = tk.Text(textFrame, height=80,bg='#101820', fg='AntiqueWhite1', font=("Bitstream Charter", 11), wrap=tk.WORD)
 input_area.grid(row=0, column=0, sticky='nsew')
 input_area.pack(expand=True)
-submit_button = tk.Button(controlFrame,  text="Submit", command=submit, font=("Arial", 12), bg='grey')
+submit_button = tk.Button(controlFrame,  text="Submit", command=submit, font=("Arial", 14), bg='grey')
 submit_button.pack(side='top', fill='x')
 
-clear_button = tk.Button(controlFrame,  text="Clear", command=clear, font=("Arial",12), bg='grey')
+clear_button = tk.Button(controlFrame,  text="Clear", command=clear, font=("Arial",14), bg='grey')
 clear_button.pack(side='top', fill='x')
 
 temperature = tk.StringVar()
@@ -217,13 +218,13 @@ max_tok_label.pack(side='top', fill='x')
 max_tok_button = ttk.Combobox(controlFrame, textvariable=max_tkns, values = [50,100,250,500,1000,1500,2000,4000,8000], style='TCombobox')
 max_tok_button.pack(side='top', fill='x')
 
-format_button = tk.Button(controlFrame, text="Format", command=setFormat, font=("Arial", 12), bg='grey')
+format_button = tk.Button(controlFrame, text="Format", command=setFormat, font=("Arial", 14), bg='grey')
 format_button.pack(side='top', fill='x')
 
-prompt_button = tk.Button(controlFrame, text="setPrompt", command=setPrompt, font=("Arial", 12), bg='grey')
+prompt_button = tk.Button(controlFrame, text="setPrompt", command=setPrompt, font=("Arial", 14), bg='grey')
 prompt_button.pack(side='top', fill='x')
 
-#model_button = tk.Button(controlFrame, text="gpt-3.5-turbo", command=set_model, font=("Arial", 12), bg='grey')
+#model_button = tk.Button(controlFrame, text="gpt-3.5-turbo", command=set_model, font=("Arial", 14), bg='grey')
 #model_button.pack(side='top', fill='x')
 
 root.rowconfigure(0, weight=1)
@@ -265,7 +266,7 @@ def run_query(query):
             msgs = render_messages_completion()
             #for msg in msgs:
             #    print(str(msg))
-            response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area)
+            response = ut.ask_LLM(model, msgs, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, tkroot=root, tkdisplay=input_area)
             #print(response)
             history = memory.get('history')
             #print(f'***** chat post query user {llm.USER_PREFIX}, {llm.ASSISTANT_PREFIX}')
@@ -281,7 +282,7 @@ def run_query(query):
             memory.set('history', history)
         else:
             # just send the raw input text to server
-            llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, root, input_area, format=False)
+            llm.run_query(model, query, int(max_tkns.get()), float(temperature.get()), float(top_p.get()), host, port, tkroot=root, tkdisplay=input_area, format=False)
     except Exception:
         traceback.print_exc()
         

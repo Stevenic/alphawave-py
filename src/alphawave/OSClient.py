@@ -70,6 +70,7 @@ class OSClient(PromptCompletionClient):
 
     def completePrompt(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, prompt: PromptSection, options: PromptCompletionOptions) -> PromptResponse:
         if isinstance(options, dict):
+            # convert to PCO object
             argoptions = options
             options = PromptCompletionOptions(completion_type = argoptions['completion_type'],
                                               model = argoptions['model'],
@@ -78,30 +79,27 @@ class OSClient(PromptCompletionClient):
                                               top_p = argoptions['top_p'],
                                               max_tokens = argoptions['max_tokens'],
                                               stop = argoptions['stop'],
-                                              presence_penalty = argoptions['presence_penalty'],
-                                              frequency_penalty = argoptions['frequency_penalty']
+                                              choice_set = argoptions['choice_set']
                                               )
         startTime = time.time()
         max_input_tokens = 1500
         if hasattr(options, 'max_input_tokens') and getattr(options, 'max_input_tokens') is not None:
             max_input_tokens = options.max_input_tokens
         
-        result = prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
+        rendered_prompt = prompt.renderAsMessages(memory, functions, tokenizer, max_input_tokens)
         
-        if result.tooLong:
+        if rendered_prompt.tooLong:
             return {'status': 'too_long', 'message': f"The generated chat completion prompt had a length of {result.length} tokens which exceeded the max_input_tokens of {max_input_tokens}."}
         if self.options.logRequests:
             print(Colorize.title('CHAT PROMPT:'))
-            for msg in result.output:
+            for msg in rendered_prompt.output:
                 if not isinstance(msg, dict):
                     print(Colorize.output(msg))
                     msg = msg.__dict__
                 print(Colorize.output(json.dumps(msg, indent=2)), end='')
             print()
 
-        request = self.copyOptionsToRequest(CreateChatCompletionRequest(model = options.model, messages =  result.output), options, ['max_tokens', 'temperature', 'top_p', 'n', 'stream', 'logprobs', 'echo', 'stop', 'presence_penalty', 'frequency_penalty', 'best_of', 'logit_bias', 'user'])
-
-        response = self.createChatCompletion(request)
+        response = self.createChatCompletion(rendered_prompt.output, options)
         if self.options.logRequests:
             print(Colorize.title('CHAT RESPONSE:'))
             print(Colorize.value('status', response.status))
@@ -125,7 +123,7 @@ class OSClient(PromptCompletionClient):
                 setattr(target,field, getattr(src,field))
         return target
 
-    def createChatCompletion(self, request: CreateChatCompletionRequest) -> requests.Response:
+    def createChatCompletion(self, messages, options) -> requests.Response:
         url = f"{self.options.endpoint or self.DefaultEndpoint}/v1/chat/completions"
         requestHeaders = {
             'Content-Type': 'application/json',
@@ -133,13 +131,14 @@ class OSClient(PromptCompletionClient):
         }
         result = ''
         try:
-            result = ut.ask_LLM(request.model,
-                                request.messages,
-                                request.max_tokens,
-                                request.temperature,
-                                request.top_p,
-                                self.options.endpoint,
-                                self.options.port
+            result = ut.ask_LLM(options.model,
+                                messages,
+                                max_tokens=options.max_tokens,
+                                temp=options.temperature,
+                                top_p=options.top_p,
+                                host=self.options.endpoint,
+                                port=self.options.port,
+                                choice_set=options.choice_set
                                 )
         except Exception as e:
             return PromptResponse(status='error',message=str(e))

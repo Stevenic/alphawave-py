@@ -22,6 +22,7 @@ class PromptCompletionOptions:
     top_p: float = 1.0
     max_tokens: int = 500
     stop: str = None
+    choice_set: list=None
     #presence_penalty: float = 1.0
     #frequency_penalty: float = 1.0
     #logit_bias = None
