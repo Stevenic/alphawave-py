@@ -6,7 +6,6 @@ import requests
 import re
 from alphawave_pyexts.conversation import Conversation, SeparatorStyle
 import alphawave_pyexts.conversation as cv
-import tkinter as tk
 import time
 
 MODEL_NAME = None; WORKER_ADDR=None; CONTROLLER_ADDRESS = "http://localhost:21001"
@@ -21,7 +20,7 @@ port = 5004
 def get_available_models():
     return list(cv.conv_templates.keys())
 
-def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, choice_set=None, tkroot = None, tkdisplay=None, format=True): 
+def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port, choice_set=None, display=None, format=True): 
     global USER_PREFIX, ASSISTANT_PREFIX, SYSTEM_PREFIX
 
     conv=cv.get_conv_template(model)
@@ -90,20 +89,16 @@ def run_query(model, messages, max_tokens, temp, top_p, host = host, port = port
                 s = s[:-6].decode('utf-8')
                 s = s.replace('</s>', '')
                 s = s.replace('<s>', '')
-                if tkdisplay is not None:
-                    tkdisplay.insert(tk.END, s)
-                    if tkroot is not None:
-                        tkroot.update()
+                if display is not None:
+                    display(s)
                 response += s
                 break
             else:
                 s = s.decode('utf-8')
                 s = s.replace('</s>', '')
                 s = s.replace('<s>', '')
-                if tkdisplay is not None:
-                    tkdisplay.insert(tk.END, s)
-                    if tkroot is not None:
-                        tkroot.update()
+                if display is not None:
+                    display(s)
                 response += s
                 # not sure why sep2 code below is here???
                 if conv.sep2 is not None:

@@ -150,7 +150,7 @@ def clear():
     PREV_POS="1.0"
     input_area.delete("1.0", tk.END)
     memory.set('history', [])
-ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
 root = tk.Tk()
 root.tk.call('tk', 'scaling', 1.0)
 root.title(model)
