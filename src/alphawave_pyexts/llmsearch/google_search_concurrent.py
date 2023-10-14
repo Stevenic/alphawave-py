@@ -20,7 +20,7 @@ import wordfreq as wf
 from unstructured.partition.html import partition_html
 import nltk
 import urllib.parse as en
-import asyncio
+
 import warnings
 from promptrix.Prompt import Prompt
 from alphawave_agents.PromptCommand import PromptCommand
@@ -64,9 +64,11 @@ def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, m
                 try:
                     dr.get(url)
                     response = dr.page_source
-                    result = response_text_extract(query_phrase, keywords, keyword_weights, url, response, int(time.time()-start_time),
-                                                          client, model, memory, functions, tokenizer, max_chars)
-                except selenium.common.exceptions.TimeoutException:
+                    result = response_text_extract(query_phrase, keywords, keyword_weights, url, response,
+                                                   int(time.time()-start_time),
+                                                   client, model, memory, functions, tokenizer, max_chars)
+                except selenium.common.exceptions.TimeoutException as e:
+                    print(str(e))
                     return '', url
     except Exception:
         traceback.print_exc()
@@ -75,12 +77,13 @@ def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, m
     #print(f"Processed {site}: {len(response)} / {len(result)} {int((time.time()-start_time)*1000)} ms")
     return result, url
 
-async def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, client, model, memory, functions, tokenizer, max_chars):
+def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, client, model, memory, functions, tokenizer, max_chars):
     response = []
     start_time = time.time()
     full_text = ''
     in_process = []
     max_w = 8
+    #print(f' normal {NORMAL_SEARCH}, quick {QUICK_SEARCH}, level {search_level}')
     # Create a ThreadPoolExecutor with 5 worker threads
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_w) as executor:
         # initialize scan of google urls
@@ -107,10 +110,10 @@ async def process_urls(query_phrase, keywords, keyword_weights, urls, search_lev
                         #print(f'removed one from in_process {len(urls)}, {len(in_process)}')
                         try:
                             result, url = future.result()
-                        except asyncio.TimeoutError:
+                            #print(result)
+                        except Exception as e:
+                            #print(str(e))
                             continue
-                        if 'coroutine' in str(type(result)).lower():
-                            result = await result
                         if len(result) > 0:
                             site = ut.extract_site(url)
                             domain = ut.extract_domain(url)
@@ -164,7 +167,6 @@ def search(query_phrase):
     try:
         google_query=en.quote(query_phrase)
     except:
-        print(f'googleSearch pblm w query_phrase, ignoring {query_phrase}')
         return []
     response=[]
     try:
@@ -255,6 +257,7 @@ def response_text_extract(query_phrase, keywords, keyword_weights, url, response
             stre = str(e).replace('  ', ' ')
             str_elements.append(stre)
         extract_text = extract_subtext(str_elements, query_phrase, keywords, keyword_weights)
+        
     if len(extract_text.strip()) < 8:
         return ''
 
@@ -293,7 +296,6 @@ def search_google(original_query, search_level, query_phrase, keywords, client, 
                   sub_wgt = max(0, int((8-zipf)*1/2))
                   if sub_wgt > 0:
                       keyword_weights[subwd] = sub_wgt
-
                   
   try:  # query google for recent info
     sort = ''
@@ -319,7 +321,7 @@ def search_google(original_query, search_level, query_phrase, keywords, client, 
     urls = [val for tup in zip_longest(orig_phrase_urls, gpt_phrase_urls) for val in tup if val is not None]
     all_urls = copy.deepcopy(urls)
     full_text = \
-        asyncio.run(process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars))
+        process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars)
   except:
       traceback.print_exc()
   return  full_text

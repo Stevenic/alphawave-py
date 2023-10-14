@@ -21,7 +21,6 @@ import time
 import traceback
 import json
 import os
-import asyncio
 from typing import Any, Dict, List, Tuple
 import alphawave_pyexts.LLMClient as llm
 from promptrix.Prompt import Prompt
@@ -154,7 +153,7 @@ def get_search_phrase_and_keywords(client, query_string, model, memory, function
         options = PromptCompletionOptions(completion_type='chat', model=model)
         response = run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
         
-        #print(response)
+        print(response)
         if type(response) == dict and 'status' in response and response['status'] == 'success':
             content = response['message']['content']
             if type(content) == dict:

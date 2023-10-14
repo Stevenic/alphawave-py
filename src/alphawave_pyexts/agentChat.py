@@ -1,5 +1,4 @@
 import argparse, json, os, sys
-import asyncio
 import traceback
 from datetime import datetime, date
 import tkinter as tk
@@ -93,7 +92,7 @@ print(agent._options['prompt_options'].temperature)
 def run_query(query):
     global agent
     try:
-        response = asyncio.run(agent.completeTask(query))
+        response = agent.completeTask(query)
         if type(response) == dict and 'type' in response and response['type'] == 'TaskResponse':
             if response['status'] == 'success' or response['status'] == 'input_needed':
                 input_area.insert(tk.END, response['message'])

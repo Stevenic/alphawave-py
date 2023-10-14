@@ -198,10 +198,10 @@ class Conversation:
                 ret = self.system + self.sep
             for role, message in self.messages:
                 if message:
-                    ret += role + ": " + message + self.sep
+                    ret += role + message + self.sep
                 else:
-                    ret += role + ":"
-            ret += self.sep+'Assistant:'
+                    ret += role
+            #ret += self.sep
             return ret
             raise ValueError(f"Invalid style: {self.sep_style}")
 
@@ -350,7 +350,7 @@ register_conv_template(
         roles=("USER", "ASSISTANT"),
         messages=(),
         offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep_style=SeparatorStyle.ADD_COLON_SPACE_SINGLE,
         sep=" ",
         sep2="</s>",
         response_prime=True,
@@ -906,11 +906,11 @@ register_conv_template(
     Conversation(
         name="openorca",
         system="",
-        roles=("User", "Assistant"),
+        roles=("<|im_start|>user\n", "<|im_start|>assistant\n", "<|im_start|>system\n"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.OPENORCA,
-        sep="<|end_of_text|>",
+        sep="<|im_end|>",
     )
 )
 

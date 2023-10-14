@@ -11,7 +11,6 @@ from alphawave.alphawaveTypes import PromptCompletionClient, PromptCompletionOpt
 from alphawave.internalTypes import ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionResponse, CreateCompletionRequest, CreateCompletionResponse
 from alphawave.Colorize import Colorize
 import openai
-import asyncio
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 

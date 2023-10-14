@@ -192,6 +192,7 @@ def submit(message, model=None, tokenizer=None, pipeline=None, stop_event=None,c
     else:
       encode_dict = tokenizer.encode_plus(message_j['prompt'], return_tensors="pt")# .to(DEV)
       input_ids = encode_dict['input_ids']
+      print(f'input tokens: {input_ids.shape}')
       attention_mask = encode_dict['attention_mask']
       input_ids = input_ids.to('cuda')
       generation_kwargs = dict(

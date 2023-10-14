@@ -2,16 +2,14 @@ import torch
 import transformers
 from transformers import (
     AutoTokenizer,
-    BitsAndBytesConfig,
     AutoModelForCausalLM,
 )
 from alphawave_pyexts import serverUtils as sv
 
-
-model_name = '/home/bruce/Downloads/llama/llama-2-70b-chat'
+model_name = '/home/bruce/Downloads/models/llama2-70b-gptq'
 print(f"Loading {model_name}")
 
-model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, load_in_4bit=True, device_map="auto", trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", trust_remote_code=True)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 text = "Hello my name is"

@@ -3,7 +3,6 @@ from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Any, Union
 import time
 import json
-import asyncio
 from promptrix.promptrixTypes import PromptFunctions, PromptMemory, PromptSection, Tokenizer
 from promptrix.SystemMessage import SystemMessage
 from promptrix.ConversationHistory import ConversationHistory

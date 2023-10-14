@@ -5,9 +5,10 @@ import time
 import traceback
 import readline as rl
 from alphawave.MemoryFork import MemoryFork
+from alphawave.OSClient import OSClient
+from promptrix.GPT3Tokenizer import GPT3Tokenizer
 import alphawave_pyexts.llmsearch.google_search_concurrent as gs
 import alphawave_pyexts.utilityV2 as ut
-import asyncio
 history = {}
 
 
@@ -16,11 +17,12 @@ def run_chat(client, query_string, model,  memory, functions, tokenizer, max_cha
   response_text = ''
   storeInteraction = True
   try:
-    #
-    fork = MemoryFork(memory)
+    fork = memory
+    if memory is not None:
+      fork = MemoryFork(memory)
     query_phrase, keywords = ut.get_search_phrase_and_keywords(client, query_string, model, fork, functions, tokenizer)
 
-    google_text=\
+    google_text= \
       gs.search_google(query_string, gs.QUICK_SEARCH, query_phrase, keywords, client, model, fork, functions, tokenizer, max_chars)
     return google_text
   except:
@@ -28,5 +30,10 @@ def run_chat(client, query_string, model,  memory, functions, tokenizer, max_cha
   return ''
 
 if __name__ == '__main__' :
+  client = OSClient(api_key=None)
+  model = 'alpaca'
+  memory = None
+  functions = None
+  tokenizer = GPT3Tokenizer()
   while True:
-    run_chat(input('Yes?'))
+    run_chat(client, input('Yes?'), model, None, None, tokenizer)

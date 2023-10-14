@@ -77,6 +77,7 @@ class AlphaWave(AsyncIOEventEmitter):
         try:
             self.emit('beforePrompt', memory, functions, tokenizer, prompt, prompt_options)
             response = client.completePrompt(memory, functions, tokenizer, prompt, prompt_options)
+            #print(f'***** Alphawave completePrompt {response}')
             self.emit('afterPrompt', memory, functions, tokenizer, prompt, prompt_options, response)
             if response['status'] != 'success':
                 return response
@@ -86,11 +87,11 @@ class AlphaWave(AsyncIOEventEmitter):
 
             self.emit('beforeValidation', memory, functions, tokenizer, response, max_repair_attempts)
             validation = validator.validate_response(memory, functions, tokenizer, response, max_repair_attempts)
+            #print(f'***** Alphawave validation {validation}')
             self.emit('afterValidation', memory, functions, tokenizer, response, max_repair_attempts, validation)
             if validation['valid']:
                 if 'value' in validation:
-                    response['message']['content'] = validation['value']
-        
+                    response["message"]["content"] = validation['value']
                 #print(f'***** Alphawave adding input to history \n{history_variable}')
                 self.addInputToHistory(memory, history_variable, input)
                 self.addResponseToHistory(memory, history_variable, response['message'])
