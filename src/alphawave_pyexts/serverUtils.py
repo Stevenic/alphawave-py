@@ -292,9 +292,12 @@ def server(model=None, tokenizer=None, pipeline=None, stop_str=[]):
                     print("got string:", query_string)
                     if query_string is not None and len(query_string) > 0:
                         message_j = json.loads(query_string)
-                        submit(query_string, model=model, tokenizer=tokenizer, pipeline=pipeline, stop_event=stop_event, conn=conn, stop_str=stop_str)
-                        gc.collect()
+                        try:
+                            submit(query_string, model=model, tokenizer=tokenizer, pipeline=pipeline, stop_event=stop_event, conn=conn, stop_str=stop_str)
+                        except RuntimeError as e:
+                            print(f'Runtime error {str(e)}')
                         torch.cuda.empty_cache()
+                        gc.collect()
                         print('sending termination')
                         conn.sendall(b'x00xff')
                         time.sleep(0.5)

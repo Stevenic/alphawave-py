@@ -59,7 +59,7 @@ def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, m
             options.add_argument("--headless")
             result = ''
             with webdriver.Chrome(options=options) as dr:
-                #print(f'*****setting page load timeout {timeout} {url}')
+                print(f'*****setting page load timeout {timeout} {url}')
                 dr.set_page_load_timeout(timeout)
                 try:
                     dr.get(url)
@@ -74,7 +74,7 @@ def process_url(query_phrase, keywords, keyword_weights, url, timeout, client, m
         traceback.print_exc()
         print(f"{site} err")
         pass
-    #print(f"Processed {site}: {len(response)} / {len(result)} {int((time.time()-start_time)*1000)} ms")
+    print(f"Processed {site}: {len(response)} / {len(result)} {int((time.time()-start_time)*1000)} ms")
     return result, url
 
 def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, client, model, memory, functions, tokenizer, max_chars):
@@ -82,7 +82,7 @@ def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, cl
     start_time = time.time()
     full_text = ''
     in_process = []
-    max_w = 8
+    max_w = 4
     #print(f' normal {NORMAL_SEARCH}, quick {QUICK_SEARCH}, level {search_level}')
     # Create a ThreadPoolExecutor with 5 worker threads
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_w) as executor:
@@ -90,14 +90,14 @@ def process_urls(query_phrase, keywords, keyword_weights, urls, search_level, cl
         try:
             while len(urls) > 0 or len(in_process) >0:
                 # empty queue if out of time
-                if (search_level==NORMAL_SEARCH and (len(full_text) > 6400 or time.time()-start_time > 24)
-                    or (search_level==QUICK_SEARCH  and (len(full_text) > 4800 or time.time()-start_time > 18))):
+                if (search_level==NORMAL_SEARCH and (len(full_text) > 1600 or time.time()-start_time > 18)
+                    or (search_level==QUICK_SEARCH  and (len(full_text) > 1200 or time.time()-start_time > 12))):
                     urls = []
                 elif len(urls) > 0:
                     url = urls[0]
                     urls = urls[1:]
                     # set timeout so we don't wait for a slow site forever
-                    timeout = 24-int(time.time()-start_time)
+                    timeout = 16-int(time.time()-start_time)
                     if search_level==NORMAL_SEARCH:
                         timeout = timeout+8
                     future = executor.submit(process_url, query_phrase, keywords, keyword_weights, url, timeout, client, model, memory, functions, tokenizer, max_chars)
@@ -257,7 +257,7 @@ def response_text_extract(query_phrase, keywords, keyword_weights, url, response
             stre = str(e).replace('  ', ' ')
             str_elements.append(stre)
         extract_text = extract_subtext(str_elements, query_phrase, keywords, keyword_weights)
-        
+        print(extract_text)
     if len(extract_text.strip()) < 8:
         return ''
 
@@ -278,25 +278,33 @@ def extract_items_from_numbered_list(text):
             items += candidate+' '
     return items
 
+def compute_keyword_weights(keywords):
+    index = 0; tried_index = 0
+    full_text=''
+    keyword_weights = {}
+    for keyword in keywords:
+        zipf = wf.zipf_frequency(keyword, 'en')
+        weight = max(0, int((8-zipf)))
+        if weight > 0:
+            keyword_weights[keyword] = weight
+            subwds = keyword.split(' ')
+            if len(subwds) > 1:
+                for subwd in subwds:
+                    sub_z = wf.zipf_frequency(subwd, 'en')
+                    sub_wgt = max(0, int((8-zipf)*1/2))
+                    if sub_wgt > 0:
+                        keyword_weights[subwd] = sub_wgt
+    return keyword_weights
+
+
+
 def search_google(original_query, search_level, query_phrase, keywords, client, model, memory, functions, tokenizer, max_chars):
   start_time = time.time()
   all_urls=[]; urls_used=[]; urls_tried=[]
   index = 0; tried_index = 0
   full_text=''
-  keyword_weights = {}
-  for keyword in keywords:
-      zipf = wf.zipf_frequency(keyword, 'en')
-      weight = max(0, int((8-zipf)))
-      if weight > 0:
-          keyword_weights[keyword] = weight
-          subwds = keyword.split(' ')
-          if len(subwds) > 1:
-              for subwd in subwds:
-                  sub_z = wf.zipf_frequency(subwd, 'en')
-                  sub_wgt = max(0, int((8-zipf)*1/2))
-                  if sub_wgt > 0:
-                      keyword_weights[subwd] = sub_wgt
                   
+  weights = compute_keyword_weights(keywords)
   try:  # query google for recent info
     sort = ''
     if 'today' in original_query or 'latest' in original_query:
@@ -321,7 +329,7 @@ def search_google(original_query, search_level, query_phrase, keywords, client, 
     urls = [val for tup in zip_longest(orig_phrase_urls, gpt_phrase_urls) for val in tup if val is not None]
     all_urls = copy.deepcopy(urls)
     full_text = \
-        process_urls(extract_query, keywords, keyword_weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars)
+        process_urls(extract_query, keywords, weights, all_urls, search_level, client, model, memory, functions, tokenizer, max_chars)
   except:
       traceback.print_exc()
   return  full_text

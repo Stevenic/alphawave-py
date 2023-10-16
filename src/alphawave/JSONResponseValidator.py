@@ -81,7 +81,7 @@ class JSONResponseValidator(PromptResponseValidator):
             #print(f'***** JSONReponseValidator parse_dict final loads success {y}')
             return y
         except json.JSONDecodeError:
-            #print(f'***** JSONReponseValidator parse_dict final return {s}')
+            # print(f'***** JSONReponseValidator parse_dict final return {s}')
             return s
 
     def validate_response(self, memory: PromptMemory, functions: PromptFunctions, tokenizer: Tokenizer, response: PromptResponse, remaining_attempts: int) -> Validation:
@@ -120,55 +120,57 @@ class JSONResponseValidator(PromptResponseValidator):
             }
 
         # Validate the response against the schema
-        if self.schema:
-            #print(f'***** JSONResponseValidator schema {self.schema}')
-            errors = None
-            for i in range(len(parsed)):  # return first one that passes
-                obj = parsed[i]
+        errors = None
+        for i in range(len(parsed)):  # return first one that passes
+            obj = parsed[i]
+            try:
                 try:
-                    try:
-                        #print(f'***** JSONResponseValidator before parse_dict {type(obj)}\n{obj}\n')
-                        obj = self.parse_dict(obj) if type(obj) == str else obj
-                        #print(f'***** JSONResponseValidator after parse_dict {type(obj)} \n{parsed}\n')
-                    except Exception as e:
-                        pass
+                    #print(f'***** JSONResponseValidator before parse_dict {type(obj)}\n{obj}\n')
+                    obj = self.parse_dict(obj) if type(obj) == str else obj
+                    #print(f'***** JSONResponseValidator after parse_dict {type(obj)} \n{parsed}\n')
+                except Exception as e:
+                    pass
+                if self.schema is not None:
                     validate(obj, self.schema)
-                    #print(f'***** JSONResponseValidator validation passed! {type(obj)}, {obj}')
                     return {
                         'type': 'Validation',
                         'valid': True,
                         'value': obj
                     }
-                except ValidationError as e:
-                    path = str(list(e.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
-                    if not errors:
-                        errors = e
+                else:
+                    if type(obj) == dict:
+                        return {
+                            'type': 'Validation',
+                            'valid': True,
+                            'value': obj
+                        }
+                    else: raise Exception()
+                    #print(f'***** JSONResponseValidator validation passed! {type(obj)}, {obj}')
+            except ValidationError as e:
+                path = str(list(e.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
+                if not errors:
+                    errors = e
                     #print(f'***** JSONResponseValidator ValidationError exception {str(e)}\n{self.schema}\n')
                     return {
                         'type': 'Validation',
                         'valid': False,
                         'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(errors)}.'+template_suffix
                     }
-                except Exception as e:
-                    #print(f'***** JSONResponseValidator validator generic exception {str(e)}\n{self.schema}')
-                    return {
-                        'type': 'Validation',
-                        'valid': False,
-                        'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}.'+template_suffix
-                    }      
+            except Exception as e:
+                #print(f'***** JSONResponseValidator validator generic exception {str(e)}\n{self.schema}')
+                return {
+                    'type': 'Validation',
+                    'valid': False,
+                    'feedback': f'The JSON returned had errors. Apply these fixes:\n{self.get_error_fix(e)}.'+template_suffix
+                }      
     
-        else:
-            # Return the last object
-            #print(f'***** JSONResponseValidator validate couldnt find a valid form')
-            return {
-                'type': 'Validation',
-                'valid': False,
-                'feedback': self.missing_json_feedback+template_suffix
-            }
 
     def get_error_fix(self, error: ValidationError) -> str:
         # Get argument as a string
-        arg = error.validator
+        try:
+            arg = error.validator
+        except:
+            return error.message
         path = str(list(error.relative_schema_path)[1:-1]).replace('[','').replace(']',"").replace(', ', ':')
         
         switcher = {
