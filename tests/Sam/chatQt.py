@@ -2,7 +2,8 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QFont, QKeySequence
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import concurrent.futures
-from PyQt5.QtWidgets import QTextEdit, QPushButton, QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QSpacerItem, QApplication
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QComboBox, QLabel, QSpacerItem, QApplication
+from PyQt5.QtWidgets import QVBoxLayout, QTextEdit, QPushButton
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QWidget, QListWidget
 import signal
 #from PyQt5 import QApplication
@@ -148,6 +149,41 @@ port = 5004
 samInnerVoice = SamInnerVoice(model = model)
 
 
+
+class TagEntryWidget(QWidget):
+   tagComplete = pyqtSignal(str)
+   
+   def __init__(self):
+      super().__init__()
+      self.setWindowTitle("Tag")
+      
+      layout = QVBoxLayout()
+      
+      # Text edit field for text entry
+      self.text_edit = QTextEdit()
+      layout.addWidget(self.text_edit)
+      
+      # OK button, closes the widget and prints the entered text
+      self.ok_button = QPushButton("OK")
+      self.ok_button.clicked.connect(self.ok_clicked)
+      layout.addWidget(self.ok_button)
+      
+      # Cancel button, closes the widget without doing anything
+      self.cancel_button = QPushButton("Cancel")
+      self.cancel_button.clicked.connect(self.cancel_clicked)
+      layout.addWidget(self.cancel_button)
+      
+      self.setLayout(layout)
+      
+   def ok_clicked(self):
+      text = self.text_edit.toPlainText()
+      self.tagComplete.emit(text)
+      self.close()
+      
+   def cancel_clicked(self):
+      self.tagComplete.emit('cancel')
+      self.close()
+
 def show_confirmation_popup(action):
    msg_box = QMessageBox()
    msg_box.setWindowTitle("Confirmation")
@@ -223,6 +259,7 @@ class ChatApp(QtWidgets.QWidget):
    def __init__(self):
       super().__init__()
       
+      self.memory_display = None
       self.windowCloseEvent = self.closeEvent
       signal.signal(signal.SIGINT, self.controlC)
       # Set the background color for the entire window
@@ -652,24 +689,29 @@ Assistant will follow the instructions in react above to respond to all question
       cursor = self.input_area.textCursor()
       if cursor.hasSelection():
          selectedText = cursor.selectedText()
-         print(f'remember: {selectedText}')
-      else:
-         print(f'remember - nothing selected')
+         self.tagEntryWidget = TagEntryWidget()
+         self.tagEntryWidget.show()
+         self.tagEntryWidget.tagComplete.connect(lambda tag: self.remember_onTag(tag, selectedText))
 
+   def remember_onTag(self, tag, selectedText):
+      samInnerVoice.remember(tag, selectedText)
+         
    def recall(self, query=None):
-      global history
-      print(f'creating memory display')
-      self.memory_display = MemoryDisplay()
-      print(f'showing memory display')
-      self.memory_display.show()
-      print(f'displaying history in  memory display')
-      self.memory_display.display_working_memory(memory.get('history'))
       cursor = self.input_area.textCursor()
       if cursor.hasSelection():
+         self.recalled_texts = []
          selectedText = cursor.selectedText()
-         print(f'recall: {selectedText}')
-      else:
-         print(f'recall - nothing selected')
+         self.tagEntryWidget = TagEntryWidget()
+         self.tagEntryWidget.show()
+         self.tagEntryWidget.tagComplete.connect(lambda tag: self.recall_onTag(tag, selectedText))
+
+   def recall_onTag(self, tag, selectedText):
+      self.recalled_texts = samInnerVoice.recall(tag, selectedText)
+      if type(self.recalled_texts) is list:
+            if self.memory_display is None:
+               self.memory_display = MemoryDisplay()
+            self.memory_display.show()
+            self.memory_display.display_working_memory(self.recalled_texts)
          
 def news_search_finished(search_result):
    global world_news
