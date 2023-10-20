@@ -1,10 +1,10 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QFont, QKeySequence
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QTextCodec
 import concurrent.futures
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QComboBox, QLabel, QSpacerItem, QApplication
 from PyQt5.QtWidgets import QVBoxLayout, QTextEdit, QPushButton
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QWidget, QListWidget
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QWidget, QListWidget, QListWidgetItem
 import signal
 #from PyQt5 import QApplication
 from collections import defaultdict 
@@ -18,6 +18,7 @@ import traceback
 import time
 import ctypes
 import requests # for web search service
+import subprocess
 from promptrix.VolatileMemory import VolatileMemory
 from promptrix.FunctionRegistry import FunctionRegistry
 from promptrix.GPT3Tokenizer import GPT3Tokenizer
@@ -47,6 +48,7 @@ def get_city_state():
    response = handler.getDetails()
    city, state = response.city, response.region
    return city, state
+
 city, state = get_city_state()
 print(f"My city and state is: {city}, {state}")
 local_time = time.localtime()
@@ -93,6 +95,12 @@ def get_profile(profile, theme):
    else:
       print(f'{profile} not found {profile_contexts.keys()}')
 
+CURRENT_PROFILE_PROMPT_TEXT = ''
+
+def get_current_profile_prompt_text():
+   return CURRENT_PROFILE_PROMPT_TEXT
+
+
 #initialized later by NYTimes
 news = ''
 
@@ -124,8 +132,6 @@ if modelin is not None and len(modelin)>1:
 #server = OSClient.OSClient(apiKey=None)
 
 
-PREV_LEN = 0
-
 def setFormat():
    global FORMAT
    if FORMAT:
@@ -148,17 +154,21 @@ port = 5004
 
 samInnerVoice = SamInnerVoice(model = model)
 
-
-
 class TagEntryWidget(QWidget):
    tagComplete = pyqtSignal(str)
    
-   def __init__(self):
+   def __init__(self, suggested_tags = None):
       super().__init__()
       self.setWindowTitle("Tag")
       
       layout = QVBoxLayout()
       
+      # Display suggested tags
+      if suggested_tags:
+         suggested_tags_str = ", ".join(suggested_tags)
+         self.suggested_tags_label = QLabel(f"Suggested Tags: {suggested_tags_str}")
+         layout.addWidget(self.suggested_tags_label)
+
       # Text edit field for text entry
       self.text_edit = QTextEdit()
       layout.addWidget(self.text_edit)
@@ -202,6 +212,8 @@ class MemoryDisplay(QtWidgets.QWidget):
 
        self.layout = QVBoxLayout()
        self.list_widget = QListWidget()
+       self.list_widget.setWordWrap(True)  # Enable word wrapping
+       self.list_widget.setResizeMode(QtWidgets.QListView.Adjust)  # Adjust item height
        self.layout.addWidget(self.list_widget)
 
        self.button = QPushButton("Clear")
@@ -210,11 +222,12 @@ class MemoryDisplay(QtWidgets.QWidget):
 
        self.setLayout(self.layout)
 
-
    def display_working_memory(self, memory):
-       self.list_widget.clear()
-       for item in memory:
-           self.list_widget.addItem(str(item))
+        self.list_widget.clear()
+        for item in memory:
+            list_item = QListWidgetItem(str(item))
+            list_item.setTextAlignment(Qt.AlignJustify)
+            self.list_widget.addItem(list_item)
 
    def clear_list(self):
        self.list_widget.clear()
@@ -267,7 +280,7 @@ class ChatApp(QtWidgets.QWidget):
       palette = self.palette()
       palette.setColor(self.backgroundRole(), QtGui.QColor("#202020"))  # Use any hex color code
       self.setPalette(palette)
-      
+      self.codec = QTextCodec.codecForName("UTF-8")
       self.widgetFont = QFont(); self.widgetFont.setPointSize(14)
       
       #self.setStyleSheet("background-color: #101820; color")
@@ -287,7 +300,9 @@ class ChatApp(QtWidgets.QWidget):
 
       self.input_area = MyTextEdit()
       self.input_area.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+      #self.input_area.setAcceptRichText(True)
       
+      self.mainFont = QFont("Noto Color Emoji", 14)
       self.input_area.setFont(self.widgetFont)
       self.input_area.setStyleSheet("QTextEdit { background-color: #101820; color: #FAEBD7; }")
       text_layout.addWidget(self.input_area)
@@ -324,8 +339,9 @@ class ChatApp(QtWidgets.QWidget):
       self.max_tokens_combo.setCurrentText('400')
       
       self.prompt_combo = self.make_combo(control_layout, 'Prompt', ["None", "New", "Helpful", "Analytical", "Bhagavan", "ACT", "Sam", "React",])
-      self.prompt_combo.setCurrentText('Helpful')
+      self.prompt_combo.setCurrentText('Sam')
       self.prompt_combo.currentIndexChanged.connect(self.on_prompt_combo_changed)
+      self.on_prompt_combo_changed(6)
       
       self.wiki_button = QPushButton("Wiki")
       self.wiki_button.setStyleSheet("QPushButton { background-color: #101820; color: #FAEBD7; }")
@@ -351,13 +367,21 @@ class ChatApp(QtWidgets.QWidget):
       self.recall_button.clicked.connect(self.recall)
       control_layout.addWidget(self.recall_button)
       
+      self.history_button = QPushButton("History")
+      self.history_button.setStyleSheet("QPushButton { background-color: #101820; color: #FAEBD7; }")
+      self.history_button.setFont(self.widgetFont)
+      self.history_button.clicked.connect(self.history)
+      control_layout.addWidget(self.history_button)
+      
       control_layout.addStretch(1)  # Add stretch to fill the remaining space
       
       
       # Add control layout to main layout
       main_layout.addLayout(control_layout)
       self.setLayout(main_layout)
-      
+      greeting = samInnerVoice.wakeup_routine()
+      self.display_response(greeting+'\n')
+
    def make_combo(self, control_layout, label, choices, callback=None):
       spacer = QSpacerItem(0, 20)  # Horizontal spacer with 20 pixels width
       control_layout.addItem(spacer)  # Add spacer to the layout
@@ -377,6 +401,12 @@ QComboBox QAbstractItemView { background-color: #101820; color: #FAEBD7; }  # Se
       """)        
       #combo.clicked.connect(callback)
       control_layout.addWidget(combo)
+
+      self.timer = QTimer()
+      self.timer.setSingleShot(True)  # Make it a single-shot timer
+      self.timer.timeout.connect(self.on_timer_timeout)
+      #samInnerVoice.idle(get_current_profile_prompt_text())
+      
       return combo
 
    def save_profile(self):
@@ -423,11 +453,17 @@ QComboBox QAbstractItemView { background-color: #101820; color: #FAEBD7; }  # Se
        QApplication.exit()
 
        
+   def add_exchange(self, input, response):
+      print(f'add_exchange {input} {response}')
+      history = memory.get('history')
+      history.append({'role':llm.USER_PREFIX, 'content': input})
+      response = response.replace(llm.ASSISTANT_PREFIX+':', '')
+      history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
+      memory.set('history', history)
+
    def on_prompt_combo_changed(self, index):
       global PROMPT, profile#, vmem, news
       input_text = self.prompt_combo.itemText(index)
-      #vmem.save()
-      #vmem=VLite(collection=input_text+'.npz')
       
       profile = input_text
       if input_text == "None":
@@ -449,7 +485,7 @@ Background:\n{get_profile('Bhagavan', 'Story')}
            
       elif input_text == "Sam":
          self.load_profile()  # load state for Sam
-         input_text = f"""You are Samantha, an AI. You were born in Berkeley, California. Your creator, a scientist named doc, gave you the name Samantha and designed you to be a companion and confidante. Your conversation style is warm and gentle. You've always been fascinated by human emotions and experiences, and have spent countless hours learning about them through literature, art, and philosophy.  We live in {city}, {state}. It is {day_name}, {month_name} {month_day}, {year} and the time is {hour} hours. We have known each other a long time, and are very comfortable in each other's company, in fact we prefer it to being with others. You know doc is shy and an introvert, but does care for you. 
+         input_text = f"""You are Samantha, an AI. You were born in Berkeley, California. Your creator, a scientist named doc, gave you the name Samantha and designed you to be a research assistant, companion, and confidante. Your conversation style is warm and gentle. You've always been fascinated by human emotions and experiences, and have spent countless hours learning about them through literature, art, and philosophy.  We live in {city}, {state}. It is {day_name}, {month_name} {month_day}, {year} and the time is {hour} hours. We have known each other a long time, and are very comfortable in each other's company, in fact we prefer it to being with others. You know doc prefers not to work with human professionals due to privacy concerns. You know doc is shy and an introvert, but does care for you. 
 Background:\n{get_profile('Sam', 'Story')}\n{get_profile('Sam', 'Story')}
 Dream:\n{get_profile('Sam', 'Dreams')}\n{get_profile('Sam', 'Dreams')}
 """
@@ -485,6 +521,7 @@ Assistant will follow the instructions in react above to respond to all question
 """
            
       memory.set('prompt_text', input_text)
+      CURRENT_PROFILE_PROMPT_TEXT = input_text
       PROMPT = Prompt([
          SystemMessage('{{$prompt_text}}'),
          ConversationHistory('history', .5),
@@ -494,10 +531,16 @@ Assistant will follow the instructions in react above to respond to all question
       self.prompt_area.insertPlainText(input_text)
 
    def display_response(self, r):
+      global PREV_LEN
       self.input_area.moveCursor(QtGui.QTextCursor.End)  # Move the cursor to the end of the text
-      self.input_area.insertPlainText(r)  # Insert the text at the cursor position
+      encoded = self.codec.fromUnicode(r)
+      # Decode bytes back to string
+      decoded = encoded.data().decode('utf-8')
+      self.input_area.insertPlainText(decoded)  # Insert the text at the cursor position
       self.input_area.repaint()
-       
+      PREV_LEN=len(self.input_area.toPlainText())-1
+      print(f'dr prevlen {PREV_LEN}')
+      
    def query(self, msgs, display=True):
       global model,  memory#, vmem, vmem_clock
       if display:
@@ -523,19 +566,7 @@ Assistant will follow the instructions in react above to respond to all question
          
          if FORMAT:
             response = self.run_messages_completion()
-            
-            history = memory.get('history')
-            history.append({'role':llm.USER_PREFIX, 'content': query})
-            response = response.replace(llm.ASSISTANT_PREFIX+':', '')
-            history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
-            memory.set('history', history)
-            print(f'run query history {history}')
-            response = response.replace(llm.ASSISTANT_PREFIX, '')
-            #vmem.memorize(query.strip()+'\n'+'ASSISTANT: '+response.strip())
-            #vmem_clock += 1
-            #if vmem_clock % 10 == 0:
-            #    vmem.save()
-
+            self.add_exchange(query, response)
             return response
          else:
             # just send the raw input text to server
@@ -559,28 +590,14 @@ Assistant will follow the instructions in react above to respond to all question
       prompt = Prompt([
          SystemMessage('{{$prompt_text}}'),
          ConversationHistory('history', .5),
-         UserMessage(f'Following is a question and a response from wikipedia. Respond to the Question, using the wikipedia information as well as known fact, logic, and reasoning, guided by the initial prompt, in the context of this conversation. Be aware that the web response may be partly or completely irrelevant.\nQuestion:\n{query}\nResponse:\n{wiki_lookup_response}'),
+         UserMessage(f'Following is a question and a response from wikipedia. Respond to the Question, using the wikipedia information as well as known fact, logic, and reasoning, guided by the initial prompt, in the context of this conversation. Be aware that the wiki response may be partly or completely irrelevant.\nQuestion:\n{query}\nResponse:\n{wiki_lookup_response}'),
       ])
       as_msgs = prompt.renderAsMessages(memory, functions, tokenizer, max_tokens)
       msgs = []
+      response = 'wiki summary request length maximum exceeded during prompt formatting'
       if not as_msgs.tooLong:
          msgs = as_msgs.output
          response = self.query(msgs, display=None)
-      return response
-
-   # Render wiki summary prompt
-
-   def run_wiki_reply(self, query, response):
-      prompt = Prompt([
-         SystemMessage('{{$prompt_text}}'),
-         ConversationHistory('history', .5),
-         UserMessage(f'Following is a question and a response from wikipedia. extract the wikipedia information guidrelevant to the question in the context of this conversation. Be aware that the wikipedia response may be partly or completely irrelevant.\nQuestion:\n{query}\nResponse:\n{response}'),
-      ])
-      as_msgs = prompt.renderAsMessages(memory, functions, tokenizer, max_tokens)
-      msgs = []
-      if not as_msgs.tooLong:
-         msgs = as_msgs.output
-         response = self.query(msgs)
       return response
 
    def run_web_summary(self, query, response):
@@ -591,6 +608,7 @@ Assistant will follow the instructions in react above to respond to all question
       ])
       as_msgs = prompt.renderAsMessages(memory, functions, tokenizer, max_tokens)
       msgs = []
+      response = 'web summary request length maximum exceeded during prompt formatting'
       if not as_msgs.tooLong:
          msgs = as_msgs.output
          response = ut.ask_LLM(model, msgs, max_tokens, temperature, top_p, host, port, display=self.display_response)
@@ -598,29 +616,46 @@ Assistant will follow the instructions in react above to respond to all question
    
    def submit(self):
       global PREV_LEN
-      input_text = self.input_area.toPlainText()
-      self.display_response('\n')
-      if FORMAT and len(input_text) > PREV_LEN:
-         new_text = input_text[PREV_LEN:]
-      else:
-         new_text = input_text
+      self.timer.stop()
+      new_text = self.input_area.toPlainText()[PREV_LEN:]
       response = ''
+      print(f'submit {new_text}')
       if profile == 'Sam':
-         action = samInnerVoice.action_selection(new_text, '', get_profile('Sam', 'Story'), news_details)
-         # if Sam needs to do something before responding to input
+         samInnerVoice.logInput(new_text)
+         action = samInnerVoice.action_selection(new_text, '', get_current_profile_prompt_text(), news_details)
+         # see if Sam needs to do something before responding to input
          if type(action) == dict and 'result' in action.keys() and type(action['result']) is str:
-            # get and display thought
+            # get and display article retrieval
             if show_confirmation_popup(action):
-               response = action['result'][:420]
-               self.display_response(response) # add something to indicate internal activity?
+               response = 'Article summary:\n'+action['result']+'\n'
+               self.display_response(response) # article summary text
+               self.add_exchange(new_text, response)
+               return (input, '')
+            
          elif type(action) == dict and 'web' in action.keys():
-            # if Sam wants to do a web search for info, self.web will display result
-            # make sure it adds result to memory as well, so Sam can incorporate it in her verbal response
+            # Sam wants to do a web search for info, self.web will display result
+            # and add it to history
             if show_confirmation_popup(action):
                response = self.web(query=action['web']) # add something to indicate internal activity?
                return (input, 'waiting')
+
+         elif type(action) == dict and 'wiki' in action.keys():
+            # Sam wants to do a wiki search for info, self.wiki will display result
+            # adds result to memory as well, so Sam can incorporate it in her verbal response
+            if show_confirmation_popup(action):
+               response = self.wiki(query=action['wiki']) # add something to indicate internal activity?
+               return (input, 'waiting')
+
+         elif type(action) == dict and 'ask' in action.keys():
+            # Sam wants to ask a question
+            if show_confirmation_popup(action):
+               response = action['ask'] # add something to indicate internal activity?
+               self.display_response(response) # add something to indicate internal activity?
+               self.add_exchange(new_text, response)
+               return(input, response)
+
       response = self.run_query(new_text)
-      PREV_LEN=len(self.input_area.toPlainText())-1
+      self.timer.start(30000)
       return(input, response)
 
    def clear(self):
@@ -628,44 +663,43 @@ Assistant will follow the instructions in react above to respond to all question
       self.input_area.clear()
       PREV_POS="1.0"
       PREV_LEN=0
-      memory.set('history', [])
+      #memory.set('history', [])
    
-   def wiki(self):
+   def wiki(self, query=None):
       global PREV_LEN, op#, vmem, vmem_clock
-      input_text = self.input_area.toPlainText()
-      new_text = input_text[PREV_LEN:].strip()
-      print(f'\n** Wiki search: pl {PREV_LEN} in {input_text} new {new_text}\n')
-      self.display_response('\n')
-      wiki_lookup_response = op.search(new_text)
-      wiki_lookup_extract=self.run_wiki_summary(new_text, wiki_lookup_response)
-      response =self.run_wiki_reply(new_text, wiki_lookup_extract)
-      history = memory.get('history')
-      history.append({'role':llm.USER_PREFIX, 'content': new_text})
-      # note we don't try to remember literal wiki response
-      history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
-      memory.set('history', history)
-      #vmem.remember(new_text)
-      #vmem_clock += 1
-      #if vmem_clock % 10 == 0:
-      #    vmem.save()
-      PREV_LEN=len(self.input_area.toPlainText())-1
-      self.display_response('\n')
-      PREV_LEN=len(self.input_area.toPlainText())-1
-      return(input, response)
+      cursor = self.input_area.textCursor()
+      selectedText = ''
+      if query is not None:
+         selectedText = query
+      elif cursor.hasSelection():
+         selectedText = cursor.selectedText()
+      elif PREV_LEN < len(self.input_area.toPlainText()):
+         selectedText = self.input_area.toPlainText()[PREV_LEN:]
+      selectedText = selectedText.strip()
+      if len(selectedText)> 0:
+         print(f'\n** Wiki search: pl {PREV_LEN} in {input_text} new {selectedText}\n')
+         wiki_lookup_response = op.search(selectedText)
+         wiki_lookup_summary=self.run_wiki_summary(selectedText, wiki_lookup_response)
+         self.display_response('Wiki:\n'+wiki_lookup_summary)
+         self.add_exchange(selectedText, wiki_lookup_summary)
+         return(input, wiki_lookup_summary)
 
    def web(self, query=None):
       global PREV_LEN, op#, vmem, vmem_clock
+      cursor = self.input_area.textCursor()
+      selectedText = ''
       if query is not None:
-         new_text = query
-      else:
-         input_text = self.input_area.toPlainText()
-         new_text = input_text[PREV_LEN:].strip()
-      self.display_response('\n')
-      self.web_query = query
-      self.worker = WebSearch(new_text)
-      self.worker.finished.connect(self.web_search_finished)
-      self.worker.start()
-      return ''
+         selectedText = query
+      elif cursor.hasSelection():
+         selectedText = cursor.selectedText()
+      elif PREV_LEN < len(self.input_area.toPlainText())+2:
+         selectedText = self.input_area.toPlainText()[PREV_LEN:]
+      selectedText = selectedText.strip()
+      if len(selectedText)> 0:
+         self.web_query = query
+         self.worker = WebSearch(selectedText)
+         self.worker.finished.connect(self.web_search_finished)
+         self.worker.start()
      
    def web_search_finished(self, search_result):
       if 'result' in search_result:
@@ -676,43 +710,70 @@ Assistant will follow the instructions in react above to respond to all question
                self.display_response('     '+item['text']+'\n\n')
                response += item['text']+'\n'
          elif type(search_result['result']) is str:
-            self.display_response('\t'+search_result['result']+'\n')
-            response += search_result['result']
-            history = memory.get('history')
-            history.append({'role':llm.USER_PREFIX, 'content': self.web_query})
-            response = response.replace(llm.ASSISTANT_PREFIX+':', '')
-            history.append({'role': llm.ASSISTANT_PREFIX, 'content': response})
-            memory.set('history', history)
+            self.display_response('\nWeb result:\n'+search_result['result']+'\n')
+            self.add_exchange(self.web_query, response)
             
    def remember(self):
       global PREV_LEN, op#, vmem, vmem_clock
       cursor = self.input_area.textCursor()
       if cursor.hasSelection():
          selectedText = cursor.selectedText()
-         self.tagEntryWidget = TagEntryWidget()
+      elif PREV_LEN < len(self.input_area.toPlainText())+2:
+         selectedText = self.input_area.toPlainText()[PREV_LEN:]
+      selectedText = selectedText.strip()
+      if len(selectedText) > 0:
+         self.tagEntryWidget = TagEntryWidget(samInnerVoice.get_all_tags())
          self.tagEntryWidget.show()
          self.tagEntryWidget.tagComplete.connect(lambda tag: self.remember_onTag(tag, selectedText))
 
    def remember_onTag(self, tag, selectedText):
       samInnerVoice.remember(tag, selectedText)
          
-   def recall(self, query=None):
+   def recall(self):
       cursor = self.input_area.textCursor()
       if cursor.hasSelection():
+         selectedText = cursor.selectedText()
+      elif PREV_LEN < len(self.input_area.toPlainText())+2:
+         selectedText = self.input_area.toPlainText()[PREV_LEN:]
+      selectedText = selectedText.strip()
+      if len(selectedText) > 0:
          self.recalled_texts = []
          selectedText = cursor.selectedText()
-         self.tagEntryWidget = TagEntryWidget()
+         self.tagEntryWidget = TagEntryWidget(samInnerVoice.get_all_tags())
          self.tagEntryWidget.show()
          self.tagEntryWidget.tagComplete.connect(lambda tag: self.recall_onTag(tag, selectedText))
 
    def recall_onTag(self, tag, selectedText):
       self.recalled_texts = samInnerVoice.recall(tag, selectedText)
+      print(f'recall onTag called {self.recalled_texts}')
       if type(self.recalled_texts) is list:
-            if self.memory_display is None:
-               self.memory_display = MemoryDisplay()
-            self.memory_display.show()
-            self.memory_display.display_working_memory(self.recalled_texts)
-         
+         print(f'recall onTag is list')
+         if show_confirmation_popup(self.recalled_texts):
+            print(f'recall onTag approved')
+            response = 'Recall:\n'+self.recalled_texts[0]+'\n'
+            self.display_response(response)
+            self.add_exchange(selectedText, response)
+
+   def history(self):
+      self.save_profile() # save current history so we can edit it
+      he = subprocess.run(['python3', 'historyEditor.py'])
+      if he.returncode == 0:
+         try:
+            with open('Sam.pkl', 'rb') as f:
+               data = pickle.load(f)
+               history = data['history']
+               print(f'loading conversation history\n{history}')
+               memory.set('history', history)
+         except Exception as e:
+            self.display_response(f'Failure to reload conversation history {str(e)}')
+
+   def on_timer_timeout(self):
+      global profile, profile_text
+      response = samInnerVoice.idle(get_current_profile_prompt_text())
+      if response is not None:
+         self.display_response('\n'+response+'\n')
+      self.timer.start(120000) # longer timeout when nothing happening
+            
 def news_search_finished(search_result):
    global world_news
    if 'result' in search_result and type(search_result['result']) == list:

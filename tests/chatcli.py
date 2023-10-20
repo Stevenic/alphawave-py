@@ -3,11 +3,7 @@ import json
 import socket
 import os
 import traceback
-import tkinter as tk
-import tkinter.font
-from tkinter import ttk
 import ctypes
-import asyncio
 from promptrix.VolatileMemory import VolatileMemory
 from promptrix.FunctionRegistry import FunctionRegistry
 from promptrix.GPT3Tokenizer import GPT3Tokenizer
@@ -125,7 +121,6 @@ Assistant will follow the instructions in react above to respond to all question
 def clear():
     global memory, PREV_POS
     PREV_POS="1.0"
-    input_area.delete("1.0", tk.END)
     memory.set('history', [])
 
 
@@ -159,6 +154,7 @@ port = 5004
 
 def run_query(query):
     global model, temperature, top_p, max_tokens, memory
+    response = ''
     try:
         memory.set('input', query)
         if FORMAT:
@@ -166,7 +162,6 @@ def run_query(query):
             for msg in msgs:
                 print(str(msg))
             response = ut.ask_LLM(model, msgs, int(max_tokens), float(temperature), float(top_p), host, port)
-            print(response)
             history = memory.get('history')
             history.append({'role':llm.USER_PREFIX, 'content': query.strip()})
             response = response.replace(llm.ASSISTANT_PREFIX+':', '')
@@ -178,7 +173,8 @@ def run_query(query):
             llm.run_query(model, query, int(max_tokens), float(temperature), float(top_p), host, port)
     except Exception:
         traceback.print_exc()
-        
+    return response
+
 while True:
     ip = input('?')
     if ip.strip().startswith('set '):

@@ -87,7 +87,7 @@ async def retrieve(title: str, url: str, max_chars: int = 1000):
   response_text = ''
   try:
     query_phrase, keywords = ut.get_search_phrase_and_keywords(client, title, model, memory, functions, tokenizer)
-    keyword_weights = gs.keyword_weights(keywords)
+    keyword_weights = gs.compute_keyword_weights(keywords)
     with warnings.catch_warnings():
       warnings.simplefilter('ignore')
       options = Options()

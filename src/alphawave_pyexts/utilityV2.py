@@ -45,9 +45,10 @@ def ask_LLM(model, gpt_message, max_tokens=100, temp=0.7, top_p=1.0, host = None
     #print(f'***** utility ask_LLL temperature {temp}')
     try:
       if not model.lower().startswith('gpt'):
-        completion = llm.run_query(model, gpt_message, max_tokens, temp, top_p, choice_set=choice_set, host=host, port=port, display=display)
-        if completion is not None:
-          response = completion
+          completion = llm.run_query(model, gpt_message, max_tokens, temp, top_p,
+                                     choice_set=choice_set, host=host, port=port, display=display)
+          if completion is not None:
+              response = completion
 
       else:
         stream= openai.ChatCompletion.create(
@@ -153,7 +154,7 @@ def get_search_phrase_and_keywords(client, query_string, model, memory, function
         options = PromptCompletionOptions(completion_type='chat', model=model)
         response = run_wave(client, {'input':query_string}, prompt, options, memory, functions, tokenizer, validator=JSONResponseValidator(schema))
         
-        print(response)
+        #print(response)
         if type(response) == dict and 'status' in response and response['status'] == 'success':
             content = response['message']['content']
             if type(content) == dict:
